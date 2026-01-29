@@ -1,0 +1,4 @@
+import -a 萌冬酱 -s 欲网性牢 -t 皮物,换身,雌堕 -o IMPORT ”C:\Users\Administrator\Desktop\暂存\小说\萌冬酱\欲网性牢\最终话 y.txt“
+import -a 萌冬酱 -t 皮物 -o IMPORT “C:\Users\Administrator\Desktop\暂存\小说\萌冬酱\二模之后.txt”
+import -a 萌东酱 -o IMPORT r"C:\Users\Administrator\Desktop\暂存\小说\萌冬酱\菜鸟女警的逆袭之扑朔迷离.txt"
+import -s 我的同桌实在太稳健了 C:\Users\Administrator\Desktop\暂存\小说\萌冬酱\我的同桌实在太稳健了\我的同桌实在太稳健了  第一卷   继母和姐姐都被变成皮！因为同桌暗恋我！.txt
