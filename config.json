@@ -1,0 +1,33 @@
+{
+    "translations": {
+        "expected one argument": "需要提供一个参数值",
+        "expected at least one argument": "至少需要提供一个参数值",
+        "invalid choice": "无效的选项",
+        "choose from": "请从以下选项中选择",
+        "not allowed with argument": "不能与该参数同时使用",
+        "ignored explicitly": "被显式忽略",
+        "is required": "是必填项",
+        "unrecognized arguments": "无法识别的参数",
+        "argument": "参数"
+    },
+    "filetype": {
+        "txt": "小说",
+        "epub": "小说",
+        "pdf": "漫画",
+        "mp3": "音乐",
+        "mp4": "视频",
+        "md": "笔记"
+    },
+    "project": {
+        "name": "项目名称",
+        "version": "项目版本",
+        "description": "项目描述",
+        "author": "作者",
+        "email": "邮箱",
+        "license": "许可证"
+    },
+    "project_settings": {
+        "library_path": "./library",
+        "csv_path": "library_manifest.csv"
+    }
+}
