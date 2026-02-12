@@ -5,3 +5,6 @@ import -s 我的同桌实在太稳健了 C:\Users\Administrator\Desktop\暂存\�
 --macos
 import -a 萌东酱 -s s_test -t tag1,tag2 -o test /Users/bingzhaoyang/Desktop/测试书籍/萌冬酱/菜鸟女警的逆袭之迷奸风云.txt
 import -a 萌东酱 -s s_test2 -t tag1,tag2,tag3 -o test "/Users/bingzhaoyang/Desktop/测试书籍/萌冬酱/米塔皮物物语/米塔皮物物语（Mita's Skinsuit Story)之皮戏淫梦.txt"
+import -a vel汉化 -s 原神 -t tag1 -o test "/Users/bingzhaoyang/Desktop/测试书籍/vel汉化/【汉化】进入深渊（Into the Abyss）(Part 3).pdf"
+import -a vel汉化 -s 原神TSF -tag2 -o test "/Users/bingzhaoyang/Desktop/测试书籍/vel汉化/【汉化】原神TSF日记 #0 ～ #10.pdf"
+import -a vel汉化 -s 原神TSF -tag2 -o test "/Users/bingzhaoyang/Desktop/测试书籍/vel汉化/【汉化】原神TSF：盗皮团.pdf"

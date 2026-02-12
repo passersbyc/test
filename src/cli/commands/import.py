@@ -111,25 +111,38 @@ class ImportCommand(BaseCommand):
         """
         try:
             root = get_project_root()
-            csv_path = self.config.get("project_settings", {}).get("csv_path", "library_manifest.csv")
+            manifest_name = self.config.get("project_settings", {}).get("csv_path", "library_manifest.csv")
         except Exception as e:
             print(f"❌ 读取配置失败: {e}")
             return
 
-        csv_path = root / csv_path
+        csv_path = root / manifest_name
+        
+        if not csv_path.exists():
+            print(f"⚠️ 清单文件不存在，正在创建: {csv_path}")
+            # 创建父目录（如果不存在）
+            csv_path.parent.mkdir(parents=True, exist_ok=True)
+            # 初始化一个空文件，稍后会写入表头和数据
+            # 这里不需要显式写入表头，因为下面的逻辑会在文件为空时自动写入表头
+            pass
 
         # 如果文件存在，则追加新记录
         try:
             headers = [
-                "文件名", "作者", "系列", "标签", "来源", 
-                "后缀", "分类", "导入时间", "文件大小(Bytes)", "MD5", "文件路径"
+                "ID", "文件名", "作者", "系列", "标签", "来源", 
+                "后缀", "分类", "导入时间", "文件大小(KB)", "MD5", "文件路径"
             ]
+            
+            # 生成新的 ID
+            from toolboxs import generate_next_id
+            new_id = generate_next_id(csv_path)
             
             # 准备要写入的数据行
             tags = metadata.get("tags", [])
             tags_str = ",".join(tags) if isinstance(tags, list) else str(tags)
             
             row_dict = {
+                "ID": new_id,
                 "文件名": metadata.get("original_filename", ""),
                 "作者": metadata.get("author", ""),
                 "系列": metadata.get("series", ""),
@@ -138,7 +151,7 @@ class ImportCommand(BaseCommand):
                 "后缀": metadata.get("file_type", ""),
                 "分类": metadata.get("type", ""),
                 "导入时间": metadata.get("import_time", ""),
-                "文件大小(Bytes)": metadata.get("file_size", 0),
+                "文件大小(KB)": metadata.get("file_size", 0),
                 "MD5": metadata.get("md5", ""),
                 "文件路径": metadata.get("file_path", "")
             }
@@ -150,7 +163,7 @@ class ImportCommand(BaseCommand):
                 if f.tell() == 0:
                     writer.writeheader()
                 writer.writerow(row_dict)
-            print(f"✅ 清单文件已更新: {csv_path}")
+            print(f"✅ 清单文件已更新: {csv_path} (ID: {new_id})")
             
         except Exception as e:
             print(f"❌ 更新 CSV 文件失败: {e}")
@@ -168,7 +181,7 @@ class ImportCommand(BaseCommand):
             "file_type": source_file.suffix[1:],
             "type": determine_file_type(str(source_file)),
             "import_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-            "file_size": target_file.stat().st_size if target_file.exists() else 0,
+            "file_size": round(target_file.stat().st_size / 1024, 2) if target_file.exists() else 0,
             "md5": file_md5,
             "file_path": str(target_file.relative_to(get_project_root()))
         }

@@ -8,7 +8,7 @@ import abc
 from typing import Dict, Type, List, Optional
 import sys
 import shlex
-from toolboxs import translate_error
+from toolboxs import translate_error, get_project_root
 
 class ArgumentParserError(Exception):
     """
@@ -45,35 +45,54 @@ class BaseCommand(abc.ABC):
         初始化命令基类，自动加载项目配置。
         """
         self.config = self._load_config()
+        self.csv_path = get_project_root() / self.config.get("project_settings", {}).get("csv_path", "library_manifest.csv")
+        self.library_path = get_project_root() / self.config.get("project_settings", {}).get("library_path", "library")
         self._ensure_csv_exists()
 
     def _ensure_csv_exists(self):
         """
         确保 CSV 清单文件存在，如果不存在则创建。
         """
-        from toolboxs import get_project_root
         import csv
         
         try:
-            csv_path = get_project_root() / self.config.get("project_settings", {}).get("csv_path", "library_manifest.csv")
-            if not csv_path.exists():
-                print(f"⚠️ 清单文件不存在，正在创建: {csv_path}")
+            if not self.csv_path.exists():
+                print(f"⚠️ 清单文件不存在，正在创建: {self.csv_path}")
                 # 创建父目录（如果不存在）
-                csv_path.parent.mkdir(parents=True, exist_ok=True)
+                self.csv_path.parent.mkdir(parents=True, exist_ok=True)
                 
                 # 定义 CSV 表头
                 headers = [
-                    "文件名", "作者", "系列", "标签", "来源", 
-                    "后缀", "分类", "导入时间", "文件大小(Bytes)", "MD5", "文件路径"
+                    "ID", "文件名", "作者", "系列", "标签", "来源", 
+                    "后缀", "分类", "导入时间", "文件大小(KB)", "MD5", "文件路径"
                 ]
                 
                 # 初始化一个空文件并写入表头
-                with open(csv_path, 'w', encoding='utf-8-sig', newline='') as f:
+                with open(self.csv_path, 'w', encoding='utf-8-sig', newline='') as f:
                     writer = csv.writer(f)
                     writer.writerow(headers)
         except Exception as e:
             # 即使创建失败也不报错，可能是权限问题或其他原因
             print(f"⚠️ 警告：无法创建清单文件。错误信息：{e}")
+
+    def _confirm(self, message: str) -> bool:
+        """
+        提示用户确认操作。
+        
+        Args:
+            message: 提示信息。
+            
+        Returns:
+            如果用户输入 'y' 或 'yes' (不区分大小写)，返回 True；否则返回 False。
+        """
+        while True:
+            response = input(f"{message} [y/n]: ").strip().lower()
+            if response in ('y', 'yes'):
+                return True
+            elif response in ('n', 'no'):
+                return False
+            else:
+                print("请输入 y 或 n。")
 
     def _load_config(self) -> dict:
         """

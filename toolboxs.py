@@ -148,7 +148,51 @@ def clean_filename(filename: str, replace_char: str = "_") -> str:
     cleaned = "".join(ch for ch in cleaned if ch.isprintable())
     return cleaned.strip()
 
+def generate_next_id(csv_path: Path = None) -> int:
+    """
+    生成下一个可用的数字 ID。
+    逻辑：读取 CSV 清单中最大的 ID 值，然后 +1。
+    如果 CSV 不存在或为空，则从 1 开始。
+    
+    :param csv_path: CSV 清单文件路径，如果不传则自动查找
+    :return: 下一个 ID (整数)
+    """
+    if csv_path is None:
+        root = get_project_root()
+        # 尝试读取配置
+        try:
+            config_path = root / "config.json"
+            if config_path.exists():
+                config = json.loads(config_path.read_text(encoding="utf-8"))
+                path_str = config.get("project_settings", {}).get("csv_path", "library_manifest.csv")
+                csv_path = root / path_str
+            else:
+                csv_path = root / "library_manifest.csv"
+        except Exception:
+            csv_path = root / "library_manifest.csv"
+            
+    if not csv_path.exists():
+        return 1
+        
+    max_id = 0
+    try:
+        with open(csv_path, 'r', encoding='utf-8-sig') as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                try:
+                    # 假设 ID 列名为 "ID"
+                    current_id = int(row.get("ID", 0))
+                    if current_id > max_id:
+                        max_id = current_id
+                except (ValueError, TypeError):
+                    continue
+    except Exception:
+        pass
+        
+    return max_id + 1
+
 def export_library_manifest(output_csv_path: str = None) -> str:
+
     """
     导出书库清单：扫描 library 目录下的所有文件，根据路径信息生成 CSV 清单。
     由于不再使用 .json 元数据文件，本函数通过解析文件路径来推断部分元数据。
@@ -181,12 +225,34 @@ def export_library_manifest(output_csv_path: str = None) -> str:
 
     # 定义 CSV 表头
     headers = [
-        "文件名", "作者", "系列", "标签", "来源", 
-        "后缀", "分类", "导入时间", "文件大小(Bytes)", "MD5", "文件路径"
+        "ID", "文件名", "作者", "系列", "标签", "来源", 
+        "后缀", "分类", "导入时间", "文件大小(KB)", "MD5", "文件路径"
     ]
     
     data_rows = []
     
+    # 获取现有 CSV 中的 ID 映射 (path -> id)
+    # 这样重建清单时可以保持原有文件的 ID 不变
+    existing_ids = {}
+    next_id_counter = 1
+    
+    if output_path.exists():
+        try:
+            with open(output_path, 'r', encoding='utf-8-sig') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    path = row.get("文件路径")
+                    pid = row.get("ID")
+                    if path and pid:
+                        try:
+                            existing_ids[path] = int(pid)
+                            if int(pid) >= next_id_counter:
+                                next_id_counter = int(pid) + 1
+                        except ValueError:
+                            pass
+        except Exception:
+            pass
+            
     # 递归查找所有文件
     # 排除 .DS_Store, library_manifest.csv 以及隐藏文件
     for file_path in library_dir.rglob("*"):
@@ -225,7 +291,7 @@ def export_library_manifest(output_csv_path: str = None) -> str:
             
             # 获取基本文件信息
             stat = file_path.stat()
-            file_size = stat.st_size
+            file_size = round(stat.st_size / 1024, 2)
             import_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(stat.st_mtime))
             md5 = generate_file_md5(file_path)
             
@@ -236,7 +302,16 @@ def export_library_manifest(output_csv_path: str = None) -> str:
             # 确定具体后缀
             suffix = file_path.suffix[1:] if file_path.suffix else ""
             
+            # 确定 ID
+            rel_root_path = str(file_path.relative_to(root))
+            if rel_root_path in existing_ids:
+                file_id = existing_ids[rel_root_path]
+            else:
+                file_id = next_id_counter
+                next_id_counter += 1
+            
             row = [
+                file_id,
                 file_path.name,
                 author,
                 series,
@@ -247,7 +322,7 @@ def export_library_manifest(output_csv_path: str = None) -> str:
                 import_time,
                 file_size,
                 md5,
-                str(file_path.relative_to(root))
+                rel_root_path
             ]
             data_rows.append(row)
             
@@ -259,6 +334,9 @@ def export_library_manifest(output_csv_path: str = None) -> str:
         # 确保输出目录存在
         output_path.parent.mkdir(parents=True, exist_ok=True)
         
+        # 按 ID 排序
+        data_rows.sort(key=lambda x: x[0])
+        
         with open(output_path, 'w', encoding='utf-8-sig', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(headers)
@@ -266,3 +344,40 @@ def export_library_manifest(output_csv_path: str = None) -> str:
         return str(output_path.absolute())
     except Exception as e:
         return f"错误: 无法写入 CSV 文件: {e}"
+
+def remove_empty_directories(directory: Path = None) -> int:
+    """
+    递归删除指定目录下的空文件夹。
+    如果不指定目录，默认使用 get_library_path() 获取的书库目录。
+    
+    :param directory: 要清理的目录路径，默认为书库路径
+    :return: 删除的空文件夹数量
+    """
+    if directory is None:
+        directory = get_library_path()
+        
+    if not directory.exists():
+        return 0
+        
+    deleted_count = 0
+    
+    # 获取所有子目录
+    # rglob('*') 会递归查找，is_dir() 筛选目录
+    # 按路径部分数量降序排序，确保先处理最深层的子目录（模拟 bottom-up）
+    # 这样当子目录被删除后，父目录变空也能被删除
+    all_subdirs = sorted(
+        [p for p in directory.rglob('*') if p.is_dir()],
+        key=lambda p: len(p.parts),
+        reverse=True
+    )
+    
+    for path in all_subdirs:
+        try:
+            path.rmdir()
+            deleted_count += 1
+        except OSError:
+            # 目录非空或无权限，跳过
+            pass
+            
+    return deleted_count
+
