@@ -12,6 +12,9 @@ class GreetCommand(BaseCommand):
     打招呼命令实现类。
     """
     
+    def __init__(self) -> None:
+        super().__init__()
+        
     @property
     def name(self) -> str:
         """

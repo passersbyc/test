@@ -150,57 +150,115 @@ def clean_filename(filename: str, replace_char: str = "_") -> str:
 
 def export_library_manifest(output_csv_path: str = None) -> str:
     """
-    导出书库清单：递归扫描 library/.meta 目录下的所有 JSON 文件，并汇总生成一个 CSV 文件。
+    导出书库清单：扫描 library 目录下的所有文件，根据路径信息生成 CSV 清单。
+    由于不再使用 .json 元数据文件，本函数通过解析文件路径来推断部分元数据。
+    路径结构假设: library/<type>/<author>/<series>/<filename>
+    
     :param output_csv_path: 输出的 CSV 文件路径
     :return: 生成的 CSV 文件的绝对路径
     """
-    if output_csv_path is None:
-        output_csv_path = config["project_settings"]["csv_path"]
+    import time
     
     root = get_project_root()
-    meta_dir = root / "library" / ".meta"
+    
+    # 尝试读取配置获取默认路径
+    if output_csv_path is None:
+        try:
+            config_path = root / "config.json"
+            if config_path.exists():
+                config = json.loads(config_path.read_text(encoding="utf-8"))
+                output_csv_path = config.get("project_settings", {}).get("csv_path", "library_manifest.csv")
+            else:
+                output_csv_path = "library_manifest.csv"
+        except Exception:
+            output_csv_path = "library_manifest.csv"
+
+    library_dir = get_library_path()
     output_path = root / output_csv_path
     
-    if not meta_dir.exists():
-        return f"错误: 目录 {meta_dir} 不存在"
+    if not library_dir.exists():
+        return f"错误: 书库目录 {library_dir} 不存在"
 
     # 定义 CSV 表头
     headers = [
         "文件名", "作者", "系列", "标签", "来源", 
-        "后缀", "分类", "导入时间", "文件大小(Bytes)", "MD5","文件路径"
+        "后缀", "分类", "导入时间", "文件大小(Bytes)", "MD5", "文件路径"
     ]
     
     data_rows = []
     
-    # 递归查找所有 .json 文件
-    for json_file in meta_dir.rglob("*.json"):
+    # 递归查找所有文件
+    # 排除 .DS_Store, library_manifest.csv 以及隐藏文件
+    for file_path in library_dir.rglob("*"):
+        if not file_path.is_file():
+            continue
+        if file_path.name.startswith("."):
+            continue
+        if file_path.name == Path(output_csv_path).name:
+            continue
+            
         try:
-            with open(json_file, 'r', encoding='utf-8') as f:
-                meta = json.load(f)
-                
-                # 处理标签列表，转为逗号分隔的字符串
-                tags = meta.get("tags", [])
-                tags_str = ",".join(tags) if isinstance(tags, list) else str(tags)
-                
-                row = [
-                    meta.get("original_filename", ""),
-                    meta.get("author", ""),
-                    meta.get("series", ""),
-                    tags_str,
-                    meta.get("source", ""),
-                    meta.get("file_type", ""),
-                    meta.get("type", ""),
-                    meta.get("import_time", ""),
-                    meta.get("file_size", 0),
-                    meta.get("md5", ""),  # 获取 MD5 字段
-                    meta.get("file_path", "")  # 获取 文件路径 字段
-                ]
-                data_rows.append(row)
+            # 计算相对于 library 目录的路径
+            rel_path = file_path.relative_to(library_dir)
+            parts = rel_path.parts
+            
+            # 初始化字段
+            file_type_category = "unknown"
+            author = ""
+            series = ""
+            
+            # 根据目录深度推断元数据
+            # 假设结构: type/author/series/filename
+            if len(parts) >= 1:
+                file_type_category = parts[0] # 第一层通常是分类 (book, image, etc.)
+            
+            if len(parts) >= 2:
+                # 第二层可能是作者，也可能是 unsort
+                if parts[1] != "unsort":
+                    author = parts[1]
+            
+            if len(parts) >= 3:
+                # 第三层可能是系列，也可能是文件名
+                # 只有当后面还有文件名时，这层才算系列
+                if len(parts) > 3:
+                     series = parts[2]
+            
+            # 获取基本文件信息
+            stat = file_path.stat()
+            file_size = stat.st_size
+            import_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(stat.st_mtime))
+            md5 = generate_file_md5(file_path)
+            
+            # 标签和来源无法从路径恢复，留空
+            tags_str = ""
+            source = ""
+            
+            # 确定具体后缀
+            suffix = file_path.suffix[1:] if file_path.suffix else ""
+            
+            row = [
+                file_path.name,
+                author,
+                series,
+                tags_str,
+                source,
+                suffix,
+                file_type_category,
+                import_time,
+                file_size,
+                md5,
+                str(file_path.relative_to(root))
+            ]
+            data_rows.append(row)
+            
         except Exception as e:
-            print(f"警告: 无法处理元数据文件 {json_file}: {e}", file=sys.stderr)
+            print(f"警告: 无法处理文件 {file_path}: {e}", file=sys.stderr)
 
     # 写入 CSV 文件
     try:
+        # 确保输出目录存在
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        
         with open(output_path, 'w', encoding='utf-8-sig', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(headers)

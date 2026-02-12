@@ -40,6 +40,58 @@ class BaseCommand(abc.ABC):
     每个具体的命令都需要继承此类并实现其抽象方法。
     """
     
+    def __init__(self):
+        """
+        初始化命令基类，自动加载项目配置。
+        """
+        self.config = self._load_config()
+        self._ensure_csv_exists()
+
+    def _ensure_csv_exists(self):
+        """
+        确保 CSV 清单文件存在，如果不存在则创建。
+        """
+        from toolboxs import get_project_root
+        import csv
+        
+        try:
+            csv_path = get_project_root() / self.config.get("project_settings", {}).get("csv_path", "library_manifest.csv")
+            if not csv_path.exists():
+                print(f"⚠️ 清单文件不存在，正在创建: {csv_path}")
+                # 创建父目录（如果不存在）
+                csv_path.parent.mkdir(parents=True, exist_ok=True)
+                
+                # 定义 CSV 表头
+                headers = [
+                    "文件名", "作者", "系列", "标签", "来源", 
+                    "后缀", "分类", "导入时间", "文件大小(Bytes)", "MD5", "文件路径"
+                ]
+                
+                # 初始化一个空文件并写入表头
+                with open(csv_path, 'w', encoding='utf-8-sig', newline='') as f:
+                    writer = csv.writer(f)
+                    writer.writerow(headers)
+        except Exception as e:
+            # 即使创建失败也不报错，可能是权限问题或其他原因
+            print(f"⚠️ 警告：无法创建清单文件。错误信息：{e}")
+
+    def _load_config(self) -> dict:
+        """
+        加载 config.json 配置文件。
+        """
+        
+        from toolboxs import get_project_root
+        try:
+            config_path = get_project_root() / "config.json"
+            if config_path.exists():
+                return json.loads(config_path.read_text(encoding="utf-8"))
+        except Exception as e:
+            # 即使加载失败也不报错，返回空字典作为默认配置
+            print(f"⚠️ 警告：无法加载配置文件 config.json，使用默认配置。错误信息：{translate_error(e)}")
+            return {}
+
+        return {}
+
     @property
     @abc.abstractmethod
     def name(self) -> str:
@@ -233,7 +285,11 @@ class CLIApp:
                 # 因此需指定 posix=False 以支持 Windows 风格路径（反斜杠仅作为分隔符）
                 # 注意：posix=False 会保留引号，所以我们需要手动处理引号去除
                 is_windows = sys.platform.startswith('win')
-                argv = shlex.split(user_input, posix=not is_windows)
+                try:
+                    argv = shlex.split(user_input, posix=not is_windows)
+                except ValueError as e:
+                    print(f"解析错误: {translate_error(str(e))}")
+                    continue
                 
                 # 如果是 Windows 模式，shlex 不会自动去除引号，我们需要手动去除
                 if is_windows:

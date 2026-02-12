@@ -11,12 +11,7 @@ class CleanCommand(BaseCommand):
     def __init__(self) -> None:
         super().__init__()
         self.args = None  # 用于存储解析后的参数
-        from toolboxs import get_project_root
-        config_path = get_project_root() / "config.json"
-        if config_path.exists():
-            self.data = json.loads(config_path.read_text(encoding="utf-8"))
-        else:
-            self.data = {}
+        self.data = self.config
 
     @property
     def name(self) -> str:
@@ -36,11 +31,6 @@ class CleanCommand(BaseCommand):
         """
         配置命令行参数解析器。
         """
-        parser.add_argument(
-            "-m","--meta",
-            action="store_true",
-            help="清理元数据文件夹。"
-        )
         parser.add_argument(
             "-l","--library",
             action="store_true",
@@ -84,9 +74,6 @@ class CleanCommand(BaseCommand):
         # 标记是否执行了特定的清理操作
         specific_action = False
         
-        if args.meta:
-            self._clean_meta(args.query)
-            specific_action = True
         if args.library:
             self._clean_library(args.query)
             specific_action = True
@@ -107,8 +94,6 @@ class CleanCommand(BaseCommand):
             return True
         response = input(f"{message} (y/n): ").lower()
         return response == 'y'
-
-    def _clean_meta(self, query: Path) -> None:
         """ 
         清理元数据文件夹。
         目标：删除 library/.meta 文件夹。
@@ -193,7 +178,6 @@ class CleanCommand(BaseCommand):
         清理所有内容（元数据、库、CSV、缓存）。
         """
         print("⚠️  正在执行全量清理...")
-        self._clean_meta(query)
         self._clean_library(query)
         self._clean_csv(query)
         self._clean_query(query)

@@ -8,6 +8,9 @@ from src.cli.core import BaseCommand
 from toolboxs import determine_file_type, get_library_path, generate_file_md5, get_project_root,export_library_manifest
 
 class ImportCommand(BaseCommand):
+    def __init__(self) -> None:
+        super().__init__()
+
     def _check_duplicate(self, file_md5: str) -> tuple[bool, str]:
         """
         检查文件是否已存在。
@@ -19,14 +22,7 @@ class ImportCommand(BaseCommand):
             
         root = get_project_root()
         # 尝试从 config.json 获取清单文件名
-        manifest_name = "library_manifest.csv"
-        try:
-            config_path = root / "config.json"
-            if config_path.exists():
-                config = json.loads(config_path.read_text(encoding="utf-8"))
-                manifest_name = config.get("project_settings", {}).get("csv_path", manifest_name)
-        except Exception:
-            pass
+        manifest_name = self.config.get("project_settings", {}).get("csv_path", "library_manifest.csv")
             
         manifest_path = root / manifest_name
         if not manifest_path.exists():
@@ -115,21 +111,12 @@ class ImportCommand(BaseCommand):
         """
         try:
             root = get_project_root()
-            config_path = root / "config.json"
-            manifest_name = "library_manifest.csv"
-            if config_path.exists():
-                data = json.loads(config_path.read_text(encoding="utf-8"))
-                manifest_name = data.get("project_settings", {}).get("csv_path", manifest_name)
+            csv_path = self.config.get("project_settings", {}).get("csv_path", "library_manifest.csv")
         except Exception as e:
-            print(f"❌ 读取配置文件失败: {e}")
+            print(f"❌ 读取配置失败: {e}")
             return
 
-        csv_path = root / manifest_name
-        
-        if not csv_path.exists():
-            export_library_manifest(str(csv_path))
-            print(f"✅ 成功导出清单文件: {csv_path}")
-            return
+        csv_path = root / csv_path
 
         # 如果文件存在，则追加新记录
         try:
@@ -168,9 +155,9 @@ class ImportCommand(BaseCommand):
         except Exception as e:
             print(f"❌ 更新 CSV 文件失败: {e}")
         
-    def _create_metadata_json(self, json_path: Path, args: argparse.Namespace, source_file: Path, target_file: Path, file_md5: str) -> dict:
+    def _create_metadata(self, args: argparse.Namespace, source_file: Path, target_file: Path, file_md5: str) -> dict:
         """
-        生成元数据 JSON 文件
+        生成元数据字典
         """
         metadata = {
             "original_filename": source_file.name,
@@ -185,16 +172,7 @@ class ImportCommand(BaseCommand):
             "md5": file_md5,
             "file_path": str(target_file.relative_to(get_project_root()))
         }
-        
-        try:
-            # 确保父目录存在
-            json_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(json_path, 'w', encoding='utf-8') as f:
-                json.dump(metadata, f, ensure_ascii=False, indent=4)
-            return metadata
-        except Exception as e:
-            print(f"❌ 元数据生成失败: {e}")
-            return None
+        return metadata
 
     def execute(self, args: argparse.Namespace) -> int:
         """
@@ -219,14 +197,9 @@ class ImportCommand(BaseCommand):
             print(f"无法识别文件类型: {args.file}")
             return 1
         type_path=get_library_path() / file_type
-        json_path=get_library_path() / ".meta" / file_type
         
         # 使用封装的函数计算并创建存储路径
         current_path = self._determine_storage_path(type_path, args.author, args.series)
-        json_folder = self._determine_storage_path(json_path, args.author, args.series)
-        
-        # 构建 JSON 文件路径 (与源文件同名，但后缀为 .json)
-        json_file_path = json_folder / (args.file.stem + ".json")
         
         # 构建目标文件路径
         target_path = current_path / args.file.name
@@ -235,10 +208,9 @@ class ImportCommand(BaseCommand):
             shutil.copy2(args.file, target_path)
             print(f"✅ 文件已导入: {target_path}")
             
-            # 生成元数据 JSON
-            metadata = self._create_metadata_json(json_file_path, args, args.file, target_path, file_md5)
+            # 生成元数据
+            metadata = self._create_metadata(args, args.file, target_path, file_md5)
             if metadata:
-                print(f"✅ json文件已导入: {json_file_path}")
                 # 补充到 CSV 清单
                 self._supplement_csv(metadata)
         except Exception as e:

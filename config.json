@@ -1,0 +1,32 @@
+{
+    "project_settings": {
+        "csv_path": "library_manifest.csv",
+        "library_path": "library"
+    },
+    "filetype": {
+        "txt": "book",
+        "epub": "book",
+        "pdf": "book",
+        "mobi": "book",
+        "azw3": "book",
+        "jpg": "image",
+        "jpeg": "image",
+        "png": "image",
+        "gif": "image",
+        "mp4": "video",
+        "avi": "video",
+        "mkv": "video",
+        "mp3": "audio",
+        "flac": "audio",
+        "wav": "audio"
+    },
+    "translations": {
+        "usage: ": "用法: ",
+        "positional arguments": "位置参数",
+        "options": "选项",
+        "show this help message and exit": "显示此帮助信息并退出",
+        "unrecognized arguments": "无法识别的参数",
+        "the following arguments are required": "以下参数是必须的",
+        "No closing quotation": "引号未闭合"
+    }
+}
