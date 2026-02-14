@@ -4,12 +4,16 @@ import hashlib
 import csv
 import re
 import unicodedata
+import zipfile
+import shutil
 from pathlib import Path
 
 def get_project_root() -> Path:
     """
     动态获取项目根目录。
     无论从哪个脚本调用，都能准确找到 config.json 所在的根目录。
+    
+    :return: 项目根目录的 Path 对象
     """
     # __file__ 是当前文件 (toolboxs.py) 的路径
     # 因为 toolboxs.py 就在根目录下，所以它的 parent 就是根目录
@@ -19,6 +23,8 @@ def get_library_path() -> Path:
     """
     获取书库存储路径。
     优先读取 config.json 中的配置，若无配置则默认返回项目根目录下的 'library' 文件夹。
+    
+    :return: 书库目录的 Path 对象
     """
     root = get_project_root()
     config_path = root / "config.json"
@@ -44,6 +50,9 @@ def translate_error(message: str) -> str:
     """
     将 argparse 的英文错误信息翻译为中文。
     从 config.json 读取翻译配置。
+    
+    :param message: 原始英文错误信息
+    :return: 翻译后的中文错误信息，若无匹配则返回原信息
     """
     translations = {}
     config_path = Path.cwd() / "config.json"
@@ -64,7 +73,9 @@ def determine_file_type(file_path: str) -> str:
     """
     根据文件扩展名确定文件类型。
     从 config.json 读取文件类型映射配置。
-    :param file_path: 文件路径
+    
+    :param file_path: 文件路径字符串
+    :return: 文件类型字符串 (如 'image', 'book')，未知类型返回 'unknown'
     """
     path_obj = Path(file_path)
     ext = path_obj.suffix.lower()
@@ -147,6 +158,35 @@ def clean_filename(filename: str, replace_char: str = "_") -> str:
     # 去除不可见字符 (如控制符) 和首尾空格
     cleaned = "".join(ch for ch in cleaned if ch.isprintable())
     return cleaned.strip()
+
+def html_to_text(html_content: str) -> str:
+    """
+    将 HTML 内容转换为纯文本。
+    1. 将 <br> 和 <p> 转换为换行符。
+    2. 去除所有 HTML 标签。
+    3. 处理常见的 HTML 实体 (如 &lt;, &gt;, &nbsp; 等)。
+    
+    :param html_content: 原始 HTML 字符串
+    :return: 清洗后的纯文本
+    """
+    if not html_content:
+        return ""
+
+    # 1. 替换换行标签
+    # <br>, <br/>, <br /> -> \n
+    text = re.sub(r'<br\s*/?>', '\n', html_content, flags=re.IGNORECASE)
+    # </p> -> \n
+    text = re.sub(r'</p>', '\n', text, flags=re.IGNORECASE)
+    
+    # 2. 去除所有 HTML 标签
+    text = re.sub(r'<[^>]+>', '', text)
+    
+    # 3. 处理 HTML 实体
+    # 仅处理最常见的几个，如果需要更完整的处理可以使用 html.unescape
+    import html
+    text = html.unescape(text)
+    
+    return text.strip()
 
 def generate_next_id(csv_path: Path = None) -> int:
     """
@@ -381,3 +421,209 @@ def remove_empty_directories(directory: Path = None) -> int:
             
     return deleted_count
 
+def convert_images_to_book(folder_path: Path, target_format: str = 'pdf', delete_original: bool = True) -> Path:
+    """
+    将文件夹内的图片合并为 PDF 或 CBZ 文件。
+    
+    :param folder_path: 图片文件夹路径 (Path 对象)
+    :param target_format: 目标格式，'pdf' 或 'cbz' (不区分大小写)
+    :param delete_original: 是否在转换成功后删除原文件夹，默认为 True
+    :return: 生成的文件路径
+    """
+    if not folder_path.exists() or not folder_path.is_dir():
+        raise ValueError(f"路径不存在或不是文件夹: {folder_path}")
+
+    target_format = target_format.lower()
+    if target_format not in ['pdf', 'cbz']:
+        raise ValueError(f"不支持的格式: {target_format}。仅支持 'pdf' 或 'cbz'")
+
+    # 支持的图片扩展名
+    image_extensions = {'.jpg', '.jpeg', '.png', '.webp', '.bmp'}
+    
+    # 获取并排序图片
+    # 使用自然排序 (1, 2, 10 而不是 1, 10, 2)
+    def natural_sort_key(path):
+        return [int(text) if text.isdigit() else text.lower()
+                for text in re.split(r'(\d+)', path.name)]
+
+    images = [
+        p for p in folder_path.iterdir() 
+        if p.is_file() and p.suffix.lower() in image_extensions and not p.name.startswith('.')
+    ]
+    images.sort(key=natural_sort_key)
+
+    if not images:
+        raise ValueError(f"在 {folder_path} 中未找到支持的图片文件")
+
+    # 使用父目录 + 文件夹名 + 后缀，防止文件夹名包含点号导致的解析错误
+    output_path = folder_path.parent / (folder_path.name + f'.{target_format}')
+    
+    try:
+        if target_format == 'pdf':
+            # 懒加载导入 PIL，避免未安装时的硬崩溃
+            try:
+                from PIL import Image
+            except ImportError:
+                raise ImportError("生成 PDF 需要安装 Pillow 库。请运行: pip install Pillow")
+
+            # 打开第一张图片并转换为 RGB (PDF 不支持 RGBA)
+            first_image = Image.open(images[0])
+            if first_image.mode != 'RGB':
+                first_image = first_image.convert('RGB')
+                
+            other_images = []
+            for img_path in images[1:]:
+                img = Image.open(img_path)
+                if img.mode != 'RGB':
+                    img = img.convert('RGB')
+                other_images.append(img)
+                
+            first_image.save(
+                output_path, 
+                "PDF", 
+                resolution=100.0, 
+                save_all=True, 
+                append_images=other_images
+            )
+            
+        elif target_format == 'cbz':
+            with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+                for img_path in images:
+                    # 在 zip 中只存储文件名，不存储绝对路径
+                    zf.write(img_path, arcname=img_path.name)
+        
+        print(f"成功生成: {output_path}")
+
+        if delete_original:
+            try:
+                shutil.rmtree(folder_path)
+                print(f"已删除原文件夹: {folder_path}")
+            except Exception as e:
+                print(f"警告: 删除原文件夹失败: {e}", file=sys.stderr)
+                
+        return output_path
+
+    except Exception as e:
+        # 如果生成失败，清理可能生成的半成品
+        if output_path.exists():
+            try:
+                output_path.unlink()
+            except OSError:
+                pass
+        raise RuntimeError(f"转换失败: {e}")
+
+def supplement_csv(metadata: dict):
+    """
+    补充 CSV 文件中的缺失字段。
+    逻辑：
+    1. 读取 config.json 中的 project_settings.csv_path。
+    2. 如果文件存在，补充刚导入的 JSON 数据。
+    3. 如果不存在，运行 export_library_manifest() 导出清单文件。
+    """
+    try:
+        root = get_project_root()
+        # 尝试读取配置
+        manifest_name = "library_manifest.csv"
+        try:
+            config_path = root / "config.json"
+            if config_path.exists():
+                config = json.loads(config_path.read_text(encoding="utf-8"))
+                manifest_name = config.get("project_settings", {}).get("csv_path", "library_manifest.csv")
+        except Exception:
+            pass
+    except Exception as e:
+        print(f"❌ 读取配置失败: {e}")
+        return
+
+    csv_path = root / manifest_name
+    
+    if not csv_path.exists():
+        print(f"⚠️ 清单文件不存在，正在创建: {csv_path}")
+        # 创建父目录（如果不存在）
+        csv_path.parent.mkdir(parents=True, exist_ok=True)
+        # 初始化一个空文件，稍后会写入表头和数据
+        # 这里不需要显式写入表头，因为下面的逻辑会在文件为空时自动写入表头
+        pass
+
+    # 如果文件存在，则追加新记录
+    try:
+        headers = [
+            "ID", "文件名", "作者", "系列", "标签", "来源", 
+            "后缀", "分类", "导入时间", "文件大小(KB)", "MD5", "文件路径"
+        ]
+        
+        # 生成新的 ID
+        new_id = generate_next_id(csv_path)
+        
+        # 准备要写入的数据行
+        tags = metadata.get("tags", [])
+        tags_str = ",".join(tags) if isinstance(tags, list) else str(tags)
+        
+        row_dict = {
+            "ID": new_id,
+            "文件名": metadata.get("original_filename", ""),
+            "作者": metadata.get("author", ""),
+            "系列": metadata.get("series", ""),
+            "标签": tags_str,
+            "来源": metadata.get("source", ""),
+            "后缀": metadata.get("file_type", ""),
+            "分类": metadata.get("type", ""),
+            "导入时间": metadata.get("import_time", ""),
+            "文件大小(KB)": metadata.get("file_size", 0),
+            "MD5": metadata.get("md5", ""),
+            "文件路径": metadata.get("file_path", "")
+        }
+        
+        # 以追加模式打开 CSV
+        with open(csv_path, 'a', encoding='utf-8-sig', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=headers)
+            # 如果文件是空的（理论上不会，因为 exists 检查过了，但以防万一），写表头
+            if f.tell() == 0:
+                writer.writeheader()
+            writer.writerow(row_dict)
+        print(f"✅ 清单文件已更新: {csv_path} (ID: {new_id})")
+        
+    except Exception as e:
+        print(f"❌ 更新 CSV 文件失败: {e}")
+
+def create_metadata(source_file: Path, target_file: Path, file_md5: str, author: str = None, series: str = None, tags: list = None, source: str = None) -> dict:
+    """
+    生成标准化的元数据字典，用于后续写入 CSV 清单。
+    
+    :param source_file: 原始文件路径 (Path 对象)，用于获取原始文件名。
+    :param target_file: 目标文件路径 (Path 对象)，即文件存入书库后的实际路径，用于计算文件大小和相对路径。
+    :param file_md5: 文件的 MD5 哈希值，用于唯一标识和查重。
+    :param author: (可选) 作品作者。
+    :param series: (可选) 作品所属系列。
+    :param tags: (可选) 标签列表，如 ["pixiv", "original"]。
+    :param source: (可选) 来源信息，如 URL 或 来源平台名称。
+    
+    :return: 包含所有元数据字段的字典，可直接传给 supplement_csv 函数。
+             字典键包括:
+             - original_filename: 原始文件名
+             - author: 作者
+             - series: 系列
+             - tags: 标签列表
+             - source: 来源
+             - file_type: 文件后缀 (不含点)
+             - type: 文件分类 (根据后缀判断，如 image, book)
+             - import_time: 导入时间 (YYYY-MM-DD HH:MM:SS)
+             - file_size: 文件大小 (KB)
+             - md5: 文件 MD5
+             - file_path: 相对于项目根目录的文件路径
+    """
+    import time
+    metadata = {
+        "original_filename": source_file.name,
+        "author": author,
+        "series": series,
+        "tags": tags if tags else [],
+        "source": source,
+        "file_type": source_file.suffix[1:],
+        "type": determine_file_type(str(source_file)),
+        "import_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
+        "file_size": round(target_file.stat().st_size / 1024, 2) if target_file.exists() else 0,
+        "md5": file_md5,
+        "file_path": str(target_file.relative_to(get_project_root()))
+    }
+    return metadata

@@ -28,5 +28,22 @@
         "unrecognized arguments": "无法识别的参数",
         "the following arguments are required": "以下参数是必须的",
         "No closing quotation": "引号未闭合"
+    },
+    "cookie": {
+        "pixiv": "first_visit_datetime_pc=2025-04-27%2020%3A14%3A32; p_ab_id=6; p_ab_id_2=4; p_ab_d_id=44120228; yuid_b=IUV3Ypk; privacy_policy_agreement=7; privacy_policy_notification=0; a_type=0; b_type=0; PHPSESSID=105466527_IZXWYkdmtue5ONigEt9t7ZdJ2yEQORG8; c_type=27; login_ever=yes; _ga=GA1.1.260133522.1746558510; _gcl_au=1.1.1159793158.1764791367; _ga_MZ1NL4PHH0=GS2.1.s1766257575$o4$g1$t1766257593$j42$l0$h0; _cfuvid=6aunysBBuUj9E_743AzscfvV9DGvGOTM8ZyUSS2qpJo-1770935869100-0.0.1.1-604800000; __cf_bm=3K8C9YO1RUb_P1B6kd9SteRqRG2GLNcsL8LHfYDoFXU-1770999631-1.0.1.1-1cKxyWCkFVJanuXAd.D8.fg4tw.rex7u2FnNxmx0XfM8QjAuychMUYxVPdSxNEhanqAfC5LjJ_rQgTN7kuVZdji5uSnN7zbXFeIiN6YZp634evEgK2nzdSwStZ4t8NNO; cf_clearance=icYV5xGTODRg8QehyAtwM..MPtITqt7J42oxfdLh_Nw-1771000368-1.2.1.1-nrxV_aY8TIGECdQn9MDfujSr.PyaW2dpAHuS.SWDpQk_Sw2yYLtRDdsKXMBXEfiTgzJmlPC3VSGEIVbLmLjcYzHcZ6QpxztAAqqA9jhwbLRKnkM7Mbx2drWzB8xCL9UGdjqHmXKn8gS1OpYCzvMhdAjgdW0OU1TsTgAylcd0m8PuT25cCI9O4qAfDJv2.ckuZYZNizhxtBbtJ0R1O9EEH.YClzZZerLftZ4yOb2JLBI; _ga_75BBYNYN9J=GS2.1.s1770999633$o286$g1$t1771000533$j26$l0$h0"
+    },
+    "download": {
+        "max_workers": 10,
+        "timeout": 10
+    },
+    "pixiv_config": {
+        "base_url": "https://www.pixiv.net",
+        "ajax_url": "https://www.pixiv.net/ajax/illust",
+        "headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Referer": "https://www.pixiv.net/",
+            "Origin": "https://www.pixiv.net",
+            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8"
+        }
     }
 }

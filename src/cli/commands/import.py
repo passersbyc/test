@@ -5,7 +5,7 @@ import json
 import time
 from pathlib import Path
 from src.cli.core import BaseCommand
-from toolboxs import determine_file_type, get_library_path, generate_file_md5, get_project_root,export_library_manifest
+from toolboxs import determine_file_type, get_library_path, generate_file_md5, get_project_root, export_library_manifest, supplement_csv, create_metadata
 
 class ImportCommand(BaseCommand):
     def __init__(self) -> None:
@@ -101,92 +101,6 @@ class ImportCommand(BaseCommand):
         parser.add_argument("--tags","-t", type=str, help="指定 资源的标签，多个标签用逗号分隔")
         parser.add_argument("--source","-o", type=str, help="指定 资源的来源")
 
-    def _supplement_csv(self, metadata: dict):
-        """
-        补充 CSV 文件中的缺失字段。
-        逻辑：
-        1. 读取 config.json 中的 project_settings.csv_path。
-        2. 如果文件存在，补充刚导入的 JSON 数据。
-        3. 如果不存在，运行 export_library_manifest() 导出清单文件。
-        """
-        try:
-            root = get_project_root()
-            manifest_name = self.config.get("project_settings", {}).get("csv_path", "library_manifest.csv")
-        except Exception as e:
-            print(f"❌ 读取配置失败: {e}")
-            return
-
-        csv_path = root / manifest_name
-        
-        if not csv_path.exists():
-            print(f"⚠️ 清单文件不存在，正在创建: {csv_path}")
-            # 创建父目录（如果不存在）
-            csv_path.parent.mkdir(parents=True, exist_ok=True)
-            # 初始化一个空文件，稍后会写入表头和数据
-            # 这里不需要显式写入表头，因为下面的逻辑会在文件为空时自动写入表头
-            pass
-
-        # 如果文件存在，则追加新记录
-        try:
-            headers = [
-                "ID", "文件名", "作者", "系列", "标签", "来源", 
-                "后缀", "分类", "导入时间", "文件大小(KB)", "MD5", "文件路径"
-            ]
-            
-            # 生成新的 ID
-            from toolboxs import generate_next_id
-            new_id = generate_next_id(csv_path)
-            
-            # 准备要写入的数据行
-            tags = metadata.get("tags", [])
-            tags_str = ",".join(tags) if isinstance(tags, list) else str(tags)
-            
-            row_dict = {
-                "ID": new_id,
-                "文件名": metadata.get("original_filename", ""),
-                "作者": metadata.get("author", ""),
-                "系列": metadata.get("series", ""),
-                "标签": tags_str,
-                "来源": metadata.get("source", ""),
-                "后缀": metadata.get("file_type", ""),
-                "分类": metadata.get("type", ""),
-                "导入时间": metadata.get("import_time", ""),
-                "文件大小(KB)": metadata.get("file_size", 0),
-                "MD5": metadata.get("md5", ""),
-                "文件路径": metadata.get("file_path", "")
-            }
-            
-            # 以追加模式打开 CSV
-            with open(csv_path, 'a', encoding='utf-8-sig', newline='') as f:
-                writer = csv.DictWriter(f, fieldnames=headers)
-                # 如果文件是空的（理论上不会，因为 exists 检查过了，但以防万一），写表头
-                if f.tell() == 0:
-                    writer.writeheader()
-                writer.writerow(row_dict)
-            print(f"✅ 清单文件已更新: {csv_path} (ID: {new_id})")
-            
-        except Exception as e:
-            print(f"❌ 更新 CSV 文件失败: {e}")
-        
-    def _create_metadata(self, args: argparse.Namespace, source_file: Path, target_file: Path, file_md5: str) -> dict:
-        """
-        生成元数据字典
-        """
-        metadata = {
-            "original_filename": source_file.name,
-            "author": args.author if args.author else None,
-            "series": args.series if args.series else None,
-            "tags": self._parse_tags(args.tags) if args.tags else [],
-            "source": args.source if args.source else None,
-            "file_type": source_file.suffix[1:],
-            "type": determine_file_type(str(source_file)),
-            "import_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
-            "file_size": round(target_file.stat().st_size / 1024, 2) if target_file.exists() else 0,
-            "md5": file_md5,
-            "file_path": str(target_file.relative_to(get_project_root()))
-        }
-        return metadata
-
     def execute(self, args: argparse.Namespace) -> int:
         """
         执行导入命令。
@@ -199,37 +113,39 @@ class ImportCommand(BaseCommand):
         is_dup, dup_name = self._check_duplicate(file_md5)
         
         if is_dup:
-            print(f"⚠️  文件已存在 (MD5 命中): {args.file.name}")
-            print(f"   库中已有同内容文件: {dup_name}")
-            print("   导入已取消。")
-            return 0  # 正常退出，但未执行导入
-            
-        # 2. 识别文件类型
-        file_type = determine_file_type(str(args.file))
-        if file_type == "unknown":
-            print(f"无法识别文件类型: {args.file}")
-            return 1
-        type_path=get_library_path() / file_type
+            print(f"⚠️ 文件已存在于书库中，跳过导入。")
+            print(f"   现有文件: {dup_name}")
+            return 0
+
+        # 2. 确定目标路径
+        library_dir = get_library_path()
+        base_path = library_dir / determine_file_type(str(args.file))
         
-        # 使用封装的函数计算并创建存储路径
-        current_path = self._determine_storage_path(type_path, args.author, args.series)
+        target_dir = self._determine_storage_path(base_path, args.author, args.series)
+        target_file = target_dir / args.file.name
         
-        # 构建目标文件路径
-        target_path = current_path / args.file.name
-        
+        # 3. 复制文件
+        print(f"正在导入到: {target_file}...")
         try:
-            shutil.copy2(args.file, target_path)
-            print(f"✅ 文件已导入: {target_path}")
-            
-            # 生成元数据
-            metadata = self._create_metadata(args, args.file, target_path, file_md5)
-            if metadata:
-                # 补充到 CSV 清单
-                self._supplement_csv(metadata)
+            shutil.copy2(args.file, target_file)
         except Exception as e:
-            print(f"❌ 导入失败: {e}")
+            print(f"❌ 复制文件失败: {e}")
             return 1
             
+        # 4. 生成元数据并更新 CSV
+        tags = self._parse_tags(args.tags) if args.tags else []
+        metadata = create_metadata(
+            source_file=args.file,
+            target_file=target_file,
+            file_md5=file_md5,
+            author=args.author,
+            series=args.series,
+            tags=tags,
+            source=args.source
+        )
+        supplement_csv(metadata)
+        
+        print("✅ 导入完成！")
         return 0
 
 
