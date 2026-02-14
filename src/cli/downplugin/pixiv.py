@@ -1,17 +1,28 @@
 import json
 import re
-import time
 import requests
-import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Any
-
-# 将项目根目录添加到 sys.path 以便导入模块
-project_root = Path(__file__).resolve().parents[3]
-if str(project_root) not in sys.path:
-    sys.path.append(str(project_root))
-
-from toolboxs import get_project_root, clean_filename, convert_images_to_book, html_to_text
+from urllib.parse import urlparse, parse_qs
+import html
+import sys
+import shutil
+from types import SimpleNamespace
+import csv
+sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from toolboxs import (
+    get_project_root,
+    clean_filename,
+    convert_images_to_book,
+    description_to_text,
+    build_import_target,
+    determine_storage_path,
+    determine_file_type,
+    get_library_path,
+    create_metadata,
+    supplement_csv,
+    generate_file_md5,
+)
 
 class PixivDownloader:
     """
@@ -62,164 +73,231 @@ class PixivDownloader:
             self.base_url = "https://www.pixiv.net"
             self.ajax_url = "https://www.pixiv.net/ajax/illust"
 
-    def get_info(self, url: str) -> Optional[Dict[str, Any]]:
-        """
-        根据作品网址获取详细信息。
-        支持插画 (artworks), 小说 (novel), 小说系列 (novel/series)。
-        
-        :param url: 作品网址
-        :return: 包含 author, series, title, type, tags 等信息的字典
-        """
-        pid = None
-        url_type = None
-        
-        # 1. 匹配插画/漫画: https://www.pixiv.net/artworks/123456
-        if "artworks" in url:
-            match = re.search(r"artworks/(\d+)", url)
-            if match:
-                pid = match.group(1)
-                url_type = "illust"
-                
-        # 2. 匹配小说: https://www.pixiv.net/novel/show.php?id=123456
-        elif "novel/show.php" in url:
-            match = re.search(r"id=(\d+)", url)
-            if match:
-                pid = match.group(1)
-                url_type = "novel"
-                
-        # 3. 匹配小说系列: https://www.pixiv.net/novel/series/123456
-        elif "novel/series" in url:
-            match = re.search(r"series/(\d+)", url)
-            if match:
-                pid = match.group(1)
-                url_type = "series"
-
-        if not pid or not url_type:
-            print(f"无法解析 URL: {url}")
-            return None
-
-        print(f"正在解析 {url_type} ID: {pid} ...")
-        
+    def get_info(self, work_url: str) -> Optional[Dict[str, Any]]:
         try:
-            if url_type == "illust":
-                return self._process_illust_info(pid)
-            elif url_type == "novel":
-                return self._process_novel_info(pid)
-            elif url_type == "series":
-                return self._process_series_info(pid)
-        except Exception as e:
-            print(f"获取信息失败: {e}")
+            if "/artworks/" in work_url:
+                m = re.search(r"/artworks/(\d+)", work_url)
+                if not m:
+                    return None
+                pid = m.group(1)
+                r = self.session.get(f"{self.ajax_url}/{pid}", timeout=15)
+                r.raise_for_status()
+                j = r.json()
+                if j.get("error"):
+                    return None
+                b = j.get("body", {})
+                tags_list = b.get("tags", {}).get("tags") or []
+                tags = [t.get("tag") for t in tags_list if isinstance(t, dict) and t.get("tag")]
+                series = None
+                s = b.get("seriesNavData") or b.get("series")
+                if isinstance(s, dict):
+                    series = s.get("title") or s.get("seriesTitle")
+                return {
+                    "type": "illust",
+                    "id": pid,
+                    "author": b.get("userName"),
+                    "title": clean_filename(b.get("title") or ""),
+                    "series": series,
+                    "tags": tags,
+                    "description": description_to_text(b.get("description") or "")
+                }
+            if "/novel/show.php" in work_url:
+                p = urlparse(work_url)
+                nid = parse_qs(p.query).get("id", [None])[0]
+                if not nid:
+                    return None
+                j = self.session.get(f"{self.base_url}/ajax/novel/{nid}", timeout=15)
+                j.raise_for_status()
+                body = j.json().get("body", {}) if isinstance(j.json(), dict) else {}
+                title = body.get("title")
+                author = body.get("userName") or body.get("user_name")
+                tags = []
+                t = body.get("tags")
+                if isinstance(t, list):
+                    tags = [x for x in t if isinstance(x, str)]
+                elif isinstance(t, dict):
+                    tl = t.get("tags") or []
+                    tags = [x.get("tag") for x in tl if isinstance(x, dict) and x.get("tag")]
+                description = body.get("caption") or body.get("description") or ""
+                series = None
+                s = body.get("seriesNavData") or body.get("series")
+                if isinstance(s, dict):
+                    series = s.get("title") or s.get("seriesTitle")
+                if not title or not author:
+                    h = self.session.get(work_url, timeout=15)
+                    h.raise_for_status()
+                    text = h.text
+                    og_title = re.search(r'<meta[^>]+property="og:title"[^>]+content="([^"]+)"', text)
+                    og_desc = re.search(r'<meta[^>]+property="og:description"[^>]+content="([^"]+)"', text)
+                    if og_title and not title:
+                        title = html.unescape(og_title.group(1))
+                        if " - pixiv" in title:
+                            title = title.split(" - pixiv")[0]
+                        if " | " in title:
+                            title = title.split(" | ")[0]
+                        if " - " in title:
+                            title = title.split(" - ")[0]
+                    if og_desc and not description:
+                        description = html.unescape(og_desc.group(1))
+                return {
+                    "type": "novel",
+                    "id": nid,
+                    "author": author,
+                    "title": clean_filename(title or ""),
+                    "series": series,
+                    "tags": tags,
+                    "description": description_to_text(description)
+                }
+            return None
+        except Exception:
             return None
 
-    def _process_illust_info(self, pid: str) -> Dict[str, Any]:
-        """处理插画信息"""
-        # 使用 base_url 拼接，因为 self.ajax_url 可能只指向 illust
-        api_url = f"{self.base_url}/ajax/illust/{pid}"
-        data = self._fetch_json(api_url)
-        
-        tags = [tag.get("tag") for tag in data.get("tags", {}).get("tags", [])]
-        
-        return {
-            "type": "illust" if data.get("illustType") == 0 else "manga", # 0: illust, 1: manga, 2: ugoira
-            "id": data.get("id"),
-            "title": clean_filename(data.get("title")),
-            "description": html_to_text(data.get("description")),
-            "author": {
-                "id": data.get("userId"),
-                "name": data.get("userName")
-            },
-            "tags": tags,
-            "series": data.get("seriesNavData", {}).get("seriesType") if data.get("seriesNavData") else None, # 插画系列信息结构较复杂，暂取简单
-            "page_count": data.get("pageCount"),
-            "create_date": data.get("createDate"),
-            "urls": data.get("urls", {})
-        }
+    def _unique_path(self, base: Path, stem: str, ext: str) -> Path:
+        p = base / f"{stem}{ext}"
+        if not p.exists():
+            return p
+        i = 1
+        while True:
+            q = base / f"{stem} ({i}){ext}"
+            if not q.exists():
+                return q
+            i += 1
+    def get_illust_pages(self, pid: str) -> List[str]:
+        url = f"{self.ajax_url}/{pid}/pages"
+        try:
+            r = self.session.get(url, timeout=15)
+            r.raise_for_status()
+            d = r.json()
+            if d.get("error"):
+                return []
+            pages = d.get("body", [])
+            res = []
+            for p in pages:
+                u = p.get("urls", {})
+                o = u.get("original_medium") or u.get("original")
+                if o:
+                    res.append(o)
+            return res
+        except Exception:
+            return []
 
-    def _process_novel_info(self, pid: str) -> Dict[str, Any]:
-        """处理小说信息"""
-        api_url = f"{self.base_url}/ajax/novel/{pid}"
-        data = self._fetch_json(api_url)
-        
-        tags = [tag.get("tag") for tag in data.get("tags", {}).get("tags", [])]
-        
-        series_info = None
-        if data.get("seriesNavData"):
-            series_data = data.get("seriesNavData")
-            series_info = {
-                "id": series_data.get("seriesId"),
-                "title": series_data.get("title"),
-                "order": series_data.get("order")
-            }
-
-        return {
-            "type": "novel",
-            "id": data.get("id"),
-            "title": clean_filename(data.get("title")),
-            "description": html_to_text(data.get("description")),
-            "author": {
-                "id": data.get("userId"),
-                "name": data.get("userName")
-            },
-            "tags": tags,
-            "series": series_info,
-            "page_count": data.get("pageCount"), # 小说通常指字数或页数概念
-            "word_count": data.get("characterCount"),
-            "create_date": data.get("createDate")
-        }
-
-    def _process_series_info(self, sid: str) -> Dict[str, Any]:
-        """处理小说系列信息"""
-        api_url = f"{self.base_url}/ajax/novel/series/{sid}"
-        data = self._fetch_json(api_url)
-        
-        # Pixiv API 变动：tags 可能是字符串列表，也可能是字典列表
-        raw_tags = data.get("tags", [])
-        tags = []
-        for tag in raw_tags:
-            if isinstance(tag, dict):
-                tags.append(tag.get("tag", ""))
-            elif isinstance(tag, str):
-                tags.append(tag)
-        
-        return {
-            "type": "series",
-            "id": data.get("id"),
-            "title": clean_filename(data.get("title")),
-            "description": html_to_text(data.get("caption")), # 系列简介通常是 caption
-            "author": {
-                "id": data.get("userId"),
-                "name": data.get("userName") # 系列接口可能不直接返回 userName，需检查
-            },
-            "tags": tags,
-            "series": None, # 本身就是系列
-            "total_count": data.get("contentCount"), # 作品总数
-            "create_date": data.get("createDate")
-        }
-
-    def _fetch_json(self, url: str) -> Dict[str, Any]:
-        """通用 JSON 获取方法"""
-        response = self.session.get(url, timeout=10)
-        response.raise_for_status()
-        res_json = response.json()
-        if res_json.get("error"):
-            raise ValueError(f"API Error: {res_json.get('message')}")
-        return res_json.get("body", {})
+    def download(self, work_url: str, save_dir: Optional[Path] = None) -> Optional[Path]:
+        if save_dir is None:
+            save_dir = get_project_root() / "downloads"
+        save_dir.mkdir(parents=True, exist_ok=True)
+        info = self.get_info(work_url)
+        if not info:
+            return None
+        title = info.get("title") or "untitled"
+        title = clean_filename(title)
+        if "/novel/show.php" in work_url:
+            p = urlparse(work_url)
+            nid = parse_qs(p.query).get("id", [None])[0]
+            if not nid:
+                return None
+            r = self.session.get(f"{self.base_url}/ajax/novel/{nid}", timeout=20)
+            r.raise_for_status()
+            body = r.json().get("body", {}) if isinstance(r.json(), dict) else {}
+            text = body.get("text") or body.get("content") or body.get("novelText") or ""
+            if not text:
+                h = self.session.get(work_url, timeout=20)
+                h.raise_for_status()
+                text = description_to_text(info.get("description") or "")
+            out = self._unique_path(save_dir, title, ".txt")
+            with open(out, "w", encoding="utf-8") as f:
+                f.write(text)
+            return out
+        if "/artworks/" in work_url:
+            m = re.search(r"/artworks/(\d+)", work_url)
+            if not m:
+                return None
+            pid = m.group(1)
+            urls = self.get_illust_pages(pid)
+            if not urls:
+                return None
+            tmp_dir = save_dir / f"{title}__{pid}"
+            tmp_dir.mkdir(parents=True, exist_ok=True)
+            for u in urls:
+                fn = u.split("/")[-1]
+                fp = tmp_dir / fn
+                if fp.exists():
+                    continue
+                if not self._download_file(u, fp):
+                    return None
+            pdf_path = convert_images_to_book(tmp_dir, target_format="pdf", delete_original=True)
+            final = self._unique_path(save_dir, title, ".pdf")
+            pdf_path.rename(final)
+            return final
+        return None
+    def _download_file(self, url: str, save_path: Path) -> bool:
+        try:
+            with self.session.get(url, stream=True, timeout=30) as r:
+                r.raise_for_status()
+                with open(save_path, "wb") as f:
+                    for chunk in r.iter_content(chunk_size=8192):
+                        if chunk:
+                            f.write(chunk)
+            return True
+        except Exception:
+            return False
+    def import_download(self, file_path: Path, work_url: Optional[str] = None) -> Optional[Path]:
+        if not file_path.exists():
+            return None
+        if not work_url:
+            return None
+        info = self.get_info(work_url)
+        if not info:
+            return None
+        title = clean_filename(info.get("title") or "")
+        author = info.get("author") or ""
+        series = info.get("series") or ""
+        suffix = file_path.suffix
+        expected_name = f"{title}{suffix}" if title else file_path.name
+        if file_path.name != expected_name:
+            new_path = file_path.with_name(expected_name)
+            file_path.rename(new_path)
+            file_path = new_path
+        file_type = determine_file_type(str(file_path))
+        if file_type == "unknown":
+            return None
+        base = get_library_path() / file_type
+        determine_storage_path(base, author, series)
+        target_path = build_import_target(file_path, author, series)
+        shutil.move(str(file_path), str(target_path))
+        file_md5 = generate_file_md5(target_path)
+        tags = info.get("tags") or []
+        tags_str = ",".join(tags) if isinstance(tags, list) else str(tags)
+        args = SimpleNamespace(
+            author=author,
+            series=series,
+            tags=tags_str,
+            source=work_url,
+        )
+        metadata = create_metadata(args, target_path, target_path, file_md5)
+        supplement_csv(metadata)
+        return target_path
+    def download_and_import(self, work_url: str) -> Optional[Path]:
+        root = get_project_root()
+        csv_path = root / "library_manifest.csv"
+        if csv_path.exists():
+            with open(csv_path, "r", encoding="utf-8-sig", newline="") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    src = row.get("来源") or row.get("source")
+                    if src and src.strip() == work_url.strip():
+                        return None
+        dl = self.download(work_url)
+        if not dl:
+            return None
+        return self.import_download(dl, work_url)
 
     
+
 if __name__ == "__main__":
-    downloader = PixivDownloader()
-    
-    test_urls = [
-        "https://www.pixiv.net/artworks/131096736",
-        "https://www.pixiv.net/novel/series/14186154", 
-        "https://www.pixiv.net/novel/show.php?id=27276178",
-        "https://www.pixiv.net/artworks/141124557"
-    ]
-    
-    print("-" * 50)
-    for url in test_urls:
-        print(f"测试 URL: {url}")
-        info = downloader.get_info(url)
-        if info:
-            print(json.dumps(info, ensure_ascii=False, indent=2))
-        print("-" * 50)
+    d = PixivDownloader()
+    u1 = "https://www.pixiv.net/artworks/141134416"
+    u2 = "https://www.pixiv.net/novel/show.php?id=25410727"
+    r1 = d.download_and_import(u1)
+    r2 = d.download_and_import(u2)
+    print(str(r1) if r1 else "artworks 141134416 skipped or failed")
+    print(str(r2) if r2 else "novel 25410727 skipped or failed")

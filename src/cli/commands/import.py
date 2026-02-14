@@ -1,43 +1,16 @@
-import csv
 import argparse
 import shutil
-import json
-import time
+import csv
 from pathlib import Path
 from src.cli.core import BaseCommand
-from toolboxs import determine_file_type, get_library_path, generate_file_md5, get_project_root, export_library_manifest, supplement_csv, create_metadata
+from toolboxs import generate_file_md5, build_import_target, check_duplicate_by_md5
 
 class ImportCommand(BaseCommand):
     def __init__(self) -> None:
         super().__init__()
 
     def _check_duplicate(self, file_md5: str) -> tuple[bool, str]:
-        """
-        检查文件是否已存在。
-        逻辑：扫描 library_manifest.csv 中的 MD5 列。
-        :return: (是否重复, 重复文件的原始名称)
-        """
-        if not file_md5:
-            return False, ""
-            
-        root = get_project_root()
-        # 尝试从 config.json 获取清单文件名
-        manifest_name = self.config.get("project_settings", {}).get("csv_path", "library_manifest.csv")
-            
-        manifest_path = root / manifest_name
-        if not manifest_path.exists():
-            return False, ""
-            
-        try:
-            with open(manifest_path, 'r', encoding='utf-8-sig') as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    if row.get("MD5") == file_md5:
-                        return True, row.get("文件名", "未知文件")
-        except Exception as e:
-            print(f"警告: 查重时读取清单失败: {e}")
-            
-        return False, ""
+        return check_duplicate_by_md5(file_md5)
 
     def _parse_tags(self, tags_str):
         if not tags_str:
@@ -45,26 +18,8 @@ class ImportCommand(BaseCommand):
         return [tag.strip() for tag in tags_str.split(',') if tag.strip()]
 
     def _determine_storage_path(self, base_path: Path, author: str, series: str) -> Path:
-        """
-        根据作者和系列计算最终存储路径。
-        逻辑:
-        1. 基础路径 (library/type)
-        2. + 作者 (如果有)
-        3. + 系列 (如果有)
-        """
-        target_path = base_path
-        if author and series:
-            target_path = target_path / author / series
-        elif author and not series:
-            target_path = target_path / author
-        elif not author and series:
-            target_path = target_path / "unsort"
-        elif not author and not series:
-            pass
-
-        # 统一创建目录
-        target_path.mkdir(parents=True, exist_ok=True)
-        return target_path
+        from toolboxs import determine_storage_path
+        return determine_storage_path(base_path, author, series)
 
     @property
     def name(self) -> str:
@@ -101,6 +56,14 @@ class ImportCommand(BaseCommand):
         parser.add_argument("--tags","-t", type=str, help="指定 资源的标签，多个标签用逗号分隔")
         parser.add_argument("--source","-o", type=str, help="指定 资源的来源")
 
+    def _supplement_csv(self, metadata: dict):
+        from toolboxs import supplement_csv
+        return supplement_csv(metadata)
+        
+    def _create_metadata(self, args: argparse.Namespace, source_file: Path, target_file: Path, file_md5: str) -> dict:
+        from toolboxs import create_metadata
+        return create_metadata(args, source_file, target_file, file_md5)
+
     def execute(self, args: argparse.Namespace) -> int:
         """
         执行导入命令。
@@ -110,43 +73,32 @@ class ImportCommand(BaseCommand):
         # 1. 计算文件 MD5 并进行查重
         print(f"正在扫描文件: {args.file.name}...")
         file_md5 = generate_file_md5(args.file)
-        is_dup, dup_name = self._check_duplicate(file_md5)
+        is_dup, dup_name = check_duplicate_by_md5(file_md5)
         
         if is_dup:
-            print(f"⚠️ 文件已存在于书库中，跳过导入。")
-            print(f"   现有文件: {dup_name}")
-            return 0
-
-        # 2. 确定目标路径
-        library_dir = get_library_path()
-        base_path = library_dir / determine_file_type(str(args.file))
-        
-        target_dir = self._determine_storage_path(base_path, args.author, args.series)
-        target_file = target_dir / args.file.name
-        
-        # 3. 复制文件
-        print(f"正在导入到: {target_file}...")
+            print(f"⚠️  文件已存在 (MD5 命中): {args.file.name}")
+            print(f"   库中已有同内容文件: {dup_name}")
+            print("   导入已取消。")
+            return 0  # 正常退出，但未执行导入
+            
+        # 2. 构建目标文件路径
         try:
-            shutil.copy2(args.file, target_file)
+            target_path = build_import_target(args.file, args.author or "", args.series or "")
+        except ValueError:
+            print(f"无法识别文件类型: {args.file}")
+            return 1
+        
+        try:
+            shutil.copy2(args.file, target_path)
+            print(f"✅ 文件已导入: {target_path}")
+            
+            # 生成元数据
+            metadata = self._create_metadata(args, args.file, target_path, file_md5)
+            if metadata:
+                # 补充到 CSV 清单
+                self._supplement_csv(metadata)
         except Exception as e:
-            print(f"❌ 复制文件失败: {e}")
+            print(f"❌ 导入失败: {e}")
             return 1
             
-        # 4. 生成元数据并更新 CSV
-        tags = self._parse_tags(args.tags) if args.tags else []
-        metadata = create_metadata(
-            source_file=args.file,
-            target_file=target_file,
-            file_md5=file_md5,
-            author=args.author,
-            series=args.series,
-            tags=tags,
-            source=args.source
-        )
-        supplement_csv(metadata)
-        
-        print("✅ 导入完成！")
         return 0
-
-
-
