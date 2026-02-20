@@ -1,0 +1,49 @@
+{
+    "project_settings": {
+        "csv_path": "library_manifest.csv",
+        "library_path": "library"
+    },
+    "filetype": {
+        "txt": "小说",
+        "epub": "小说",
+        "mobi": "小说",
+        "azw3": "小说",
+        "jpg": "图片",
+        "jpeg": "图片",
+        "png": "图片",
+        "gif": "图片",
+        "pdf": "漫画",
+        "mp4": "电影",
+        "avi": "电影",
+        "mkv": "电影",
+        "mp3": "音乐",
+        "flac": "音乐",
+        "wav": "音乐"
+    },
+    "translations": {
+        "usage: ": "用法: ",
+        "positional arguments": "位置参数",
+        "options": "选项",
+        "show this help message and exit": "显示此帮助信息并退出",
+        "unrecognized arguments": "无法识别的参数",
+        "the following arguments are required": "以下参数是必须的",
+        "No closing quotation": "引号未闭合"
+    },
+    "cookie": {
+        "pixiv":"first_visit_datetime_pc=2026-01-23%2010%3A40%3A43; p_ab_id=9; p_ab_id_2=5; p_ab_d_id=1335401915; yuid_b=MYMWcUA; _ga=GA1.1.156646828.1769132447; privacy_policy_agreement=7; device_token=84b76062644e06c2667b556c2f85297f; privacy_policy_notification=0; a_type=0; b_type=0; _gcl_au=1.1.1008704112.1769140735; cc1=2026-02-19%2004%3A44%3A39; PHPSESSID=115059366_XAQ95mJb68diBbyoQZ7gCCatCKGeCi8L; c_type=48; _cfuvid=QQdcW8WBgUN5InI_SRee1rZ_fYIkxRjZR_R4Fpv3xqg-1771521306914-0.0.1.1-604800000; cf_clearance=8UX.A4GIaTL9wkHfvwPZRWXpliv12P1KzZfyvz.Fg_M-1771521308-1.2.1.1-B_dyFHlnUfsdBX4nWG_BAoW9ke93UWjDYIpluUuekWFz0iYGO9iO1ISxQHZ4GtIRSnq1ISrd8WUJMQiuZ1Y5qNI4dz5YhSGy_S7qPNp87F1MLoHhvcm8cB9iVAFvcdnzb0Al_0v6zhLe2Lnpc1tC8xZXIMxPjcbyo_Is2Y4Is1SVD_xKTWu0lYkY.W6PX6z230Phjr4azYNDE09.DD_L98u6Cu8JmACtsOViafpfmKQ; __cf_bm=7kQZAm77Kwp9Z0U6nkYTDFWSRY9g.dCR77TDxQHYCqk-1771527197-1.0.1.1-0esGP5ibzOOl8otPDAIws2hM5KfXZDQRDgfkOrRCEqUI0gskDJr3_fpcupM0g8bVvYQX7r6wxsqiD__Nvhs5QF3ATp_DIQ9BmhFuWQOC0p3sLHaM8xIt85Dg8A9YruSo; _ga_75BBYNYN9J=GS2.1.s1771527523$o36$g1$t1771527999$j58$l0$h0"
+    },
+    "download": {
+        "max_workers": 10,
+        "timeout": 10
+    },
+    "pixiv_config": {
+        "base_url": "https://www.pixiv.net",
+        "ajax_url": "https://www.pixiv.net/ajax/illust",
+        "headers": {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Referer": "https://www.pixiv.net/",
+            "Origin": "https://www.pixiv.net",
+            "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8"
+        }
+    }
+}
