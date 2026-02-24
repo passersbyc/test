@@ -30,7 +30,8 @@
         "No closing quotation": "引号未闭合"
     },
     "cookie": {
-        "pixiv":"first_visit_datetime_pc=2026-01-23%2010%3A40%3A43; p_ab_id=9; p_ab_id_2=5; p_ab_d_id=1335401915; yuid_b=MYMWcUA; _ga=GA1.1.156646828.1769132447; privacy_policy_agreement=7; device_token=84b76062644e06c2667b556c2f85297f; privacy_policy_notification=0; a_type=0; b_type=0; _gcl_au=1.1.1008704112.1769140735; cc1=2026-02-19%2004%3A44%3A39; PHPSESSID=115059366_XAQ95mJb68diBbyoQZ7gCCatCKGeCi8L; c_type=48; _cfuvid=QQdcW8WBgUN5InI_SRee1rZ_fYIkxRjZR_R4Fpv3xqg-1771521306914-0.0.1.1-604800000; cf_clearance=8UX.A4GIaTL9wkHfvwPZRWXpliv12P1KzZfyvz.Fg_M-1771521308-1.2.1.1-B_dyFHlnUfsdBX4nWG_BAoW9ke93UWjDYIpluUuekWFz0iYGO9iO1ISxQHZ4GtIRSnq1ISrd8WUJMQiuZ1Y5qNI4dz5YhSGy_S7qPNp87F1MLoHhvcm8cB9iVAFvcdnzb0Al_0v6zhLe2Lnpc1tC8xZXIMxPjcbyo_Is2Y4Is1SVD_xKTWu0lYkY.W6PX6z230Phjr4azYNDE09.DD_L98u6Cu8JmACtsOViafpfmKQ; __cf_bm=7kQZAm77Kwp9Z0U6nkYTDFWSRY9g.dCR77TDxQHYCqk-1771527197-1.0.1.1-0esGP5ibzOOl8otPDAIws2hM5KfXZDQRDgfkOrRCEqUI0gskDJr3_fpcupM0g8bVvYQX7r6wxsqiD__Nvhs5QF3ATp_DIQ9BmhFuWQOC0p3sLHaM8xIt85Dg8A9YruSo; _ga_75BBYNYN9J=GS2.1.s1771527523$o36$g1$t1771527999$j58$l0$h0"
+        "pixiv":"first_visit_datetime_pc=2026-01-23%2010%3A40%3A43; p_ab_id=9; p_ab_id_2=5; p_ab_d_id=1335401915; yuid_b=MYMWcUA; _ga=GA1.1.156646828.1769132447; privacy_policy_agreement=7; device_token=84b76062644e06c2667b556c2f85297f; privacy_policy_notification=0; a_type=0; b_type=0; _gcl_au=1.1.1008704112.1769140735; __cf_bm=n6uE4sULnnclkQZHOkSnpJWmyE50TG8oEsQEvwmrLfo-1771612235-1.0.1.1-vmLT8H8LSTkCufzeYcYqRLXIY16LkADMMWp99JxyxYVIFxbvvCaCrLpK_XfgyNwCJlQEgl7GzQJ0evASYLQbH4UaqTU5a5kvYJiCezEtYrqgHqNLStDRfujgVTqWVE7i; _cfuvid=yBXk_.A96rT08OnUGF93zaggOAoDPoAUmcXt.oSs6YQ-1771612235635-0.0.1.1-604800000; cf_clearance=j_dJUdqU7AiudrwZF7lPEmAm1aqm_peXiVprQrrYyZU-1771613206-1.2.1.1-z_tYgn6u9Vls6u.J6Z2Al8b1k9bzXdyd56g2vKx.IwOFznjjRZjdUvWO4Bgoci561U2lubXK.YVPm7J41a3FIPvHIA8OaRroKesvSebFc9kSHZ2i_I40Fu.aQR8Ewu2IrFkbm95POGbVsimEa1oHP0QeZeFOSqalins9Yr1EQG.YBtvNjTGiZRBQQmQ87HivHIRko_BNvBaufn5KLxY9iwEJlnOL_pW9iFd11aaI9CM; cc1=2026-02-21%2003%3A57%3A24; PHPSESSID=105466527_J7q1HJzEIA5NuNza6nn3dWqubkAhu84q; c_type=28; _ga_75BBYNYN9J=GS2.1.s1771612235$o39$g1$t1771613896$j5$l0$h0",
+        "kemono":"__ddg1_=SIKizvwq51Ect9WAJt74; thumbSize=180; session=eyJfcGVybWFuZW50Ijp0cnVlLCJhY2NvdW50X2lkIjoyMDgxMjU5fQ.aXpHfA.BBLHTlzWdKcdU0WlbW7IiNNT6ok; __ddg9_=185.14.47.244; __ddg8_=ycundpii2Vw7mKy3; __ddg10_=1771652897"
     },
     "download": {
         "max_workers": 10,
@@ -44,6 +45,7 @@
             "Referer": "https://www.pixiv.net/",
             "Origin": "https://www.pixiv.net",
             "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.8"
-        }
+        },
+        "book_format": "epub"
     }
 }

@@ -14,6 +14,7 @@ from urllib3.util.retry import Retry
 import html
 import sys
 import shutil
+import zipfile
 from types import SimpleNamespace
 import csv
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
@@ -328,6 +329,76 @@ class PixivDownloader:
             if not q.exists():
                 return q
             i += 1
+    def _write_epub(self, text: str, title: str, author: str, identifier: str, output_path: Path) -> bool:
+        try:
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            safe_title = html.escape(title or "untitled")
+            safe_author = html.escape(author or "")
+            safe_id = html.escape(identifier or title or "pixiv-novel")
+            paragraphs = [line.strip() for line in (text or "").splitlines()]
+            body_parts = [f"<p>{html.escape(p)}</p>" for p in paragraphs if p]
+            body_html = "\n".join(body_parts) if body_parts else "<p></p>"
+            content_xhtml = (
+                '<?xml version="1.0" encoding="utf-8"?>\n'
+                '<!DOCTYPE html>\n'
+                '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh" lang="zh">\n'
+                "<head><title>" + safe_title + '</title><meta charset="utf-8"/></head>\n'
+                "<body>\n" + body_html + "\n</body>\n</html>\n"
+            )
+            content_opf = (
+                '<?xml version="1.0" encoding="utf-8"?>\n'
+                '<package xmlns="http://www.idpf.org/2007/opf" unique-identifier="BookId" version="2.0">\n'
+                '  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">\n'
+                '    <dc:identifier id="BookId">' + safe_id + "</dc:identifier>\n"
+                '    <dc:title>' + safe_title + "</dc:title>\n"
+                '    <dc:creator>' + safe_author + "</dc:creator>\n"
+                '    <dc:language>zh</dc:language>\n'
+                "  </metadata>\n"
+                "  <manifest>\n"
+                '    <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>\n'
+                '    <item id="content" href="content.xhtml" media-type="application/xhtml+xml"/>\n'
+                "  </manifest>\n"
+                '  <spine toc="ncx">\n'
+                '    <itemref idref="content"/>\n'
+                "  </spine>\n"
+                "</package>\n"
+            )
+            toc_ncx = (
+                '<?xml version="1.0" encoding="utf-8"?>\n'
+                '<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">\n'
+                "  <head>\n"
+                '    <meta name="dtb:uid" content="' + safe_id + '"/>\n'
+                '    <meta name="dtb:depth" content="1"/>\n'
+                '    <meta name="dtb:totalPageCount" content="0"/>\n'
+                '    <meta name="dtb:maxPageNumber" content="0"/>\n'
+                "  </head>\n"
+                "  <docTitle><text>" + safe_title + "</text></docTitle>\n"
+                "  <navMap>\n"
+                '    <navPoint id="navPoint-1" playOrder="1">\n'
+                "      <navLabel><text>" + safe_title + "</text></navLabel>\n"
+                '      <content src="content.xhtml"/>\n'
+                "    </navPoint>\n"
+                "  </navMap>\n"
+                "</ncx>\n"
+            )
+            container_xml = (
+                '<?xml version="1.0" encoding="utf-8"?>\n'
+                '<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">\n'
+                "  <rootfiles>\n"
+                '    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>\n'
+                "  </rootfiles>\n"
+                "</container>\n"
+            )
+            with zipfile.ZipFile(output_path, "w") as zf:
+                zf.writestr("mimetype", "application/epub+zip", compress_type=zipfile.ZIP_STORED)
+                zf.writestr("META-INF/container.xml", container_xml, compress_type=zipfile.ZIP_DEFLATED)
+                zf.writestr("OEBPS/content.opf", content_opf, compress_type=zipfile.ZIP_DEFLATED)
+                zf.writestr("OEBPS/toc.ncx", toc_ncx, compress_type=zipfile.ZIP_DEFLATED)
+                zf.writestr("OEBPS/content.xhtml", content_xhtml, compress_type=zipfile.ZIP_DEFLATED)
+            return True
+        except Exception as e:
+            self._set_last_error(f"EPUB 生成失败: {e}")
+            return False
     def get_illust_pages(self, pid: str) -> List[str]:
         url = f"{self.ajax_url}/{pid}/pages"
         try:
@@ -384,9 +455,10 @@ class PixivDownloader:
                         self._set_last_error(f"请求失败: {e}")
                     return None, None
                 text = description_to_text(info.get("description") or "")
-            out = self._unique_path(save_dir, title, ".txt")
-            with open(out, "w", encoding="utf-8") as f:
-                f.write(text)
+            out = self._unique_path(save_dir, title, ".epub")
+            author = info.get("author") or ""
+            if not self._write_epub(text, title, author, nid, out):
+                return None, None
             return out, info
         if "/artworks/" in work_url:
             m = re.search(r"/artworks/(\d+)", work_url)
@@ -682,7 +754,9 @@ class PixivDownloader:
                                 if ok:
                                     with lock:
                                         stats["success"] += 1
-                                        if stats["skipped"] > 0:
+                                        if stats["failed"] > 0:
+                                            stats["failed"] -= 1
+                                        elif stats["skipped"] > 0:
                                             stats["skipped"] -= 1
         
         print(f"\n� 搬运大功告成啦: 🎉 成功 {stats['success']} | 💨 跳过 {stats['skipped']} | 💢 失败 {stats['failed']}")
@@ -706,9 +780,14 @@ class PixivDownloader:
                         if count_stats:
                             stats["success"] += 1
                     else:
-                        pbar.write(f"💨 已跳过: {work_url} | 原因: {reason}")
-                        if count_stats:
-                            stats["skipped"] += 1
+                        if "已存在" in reason or "exists" in reason.lower():
+                            pbar.write(f"💨 已跳过: {work_url} | 原因: {reason}")
+                            if count_stats:
+                                stats["skipped"] += 1
+                        else:
+                            pbar.write(f"💢 搬运失败: {work_url} | 原因: {reason}")
+                            if count_stats:
+                                stats["failed"] += 1
                     pbar.update(1)
                 return work_url, bool(res), reason
                 
