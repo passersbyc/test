@@ -1,0 +1,11 @@
+07:58:28 - INFO - 获取到作者名称: bqj111
+10:11:33 - ERROR - 加载现有记录失败: Cannot open console output buffer for reading
+10:11:33 - ERROR - 加载配置失败: the JSON object must be str, bytes or bytearray, not MagicMock
+10:11:33 - ERROR - 加载现有记录失败: Cannot open console output buffer for reading
+10:11:33 - ERROR - 加载配置失败: the JSON object must be str, bytes or bytearray, not MagicMock
+10:11:33 - ERROR - 加载现有记录失败: Cannot open console output buffer for reading
+10:11:33 - ERROR - 加载配置失败: the JSON object must be str, bytes or bytearray, not MagicMock
+10:11:34 - ERROR - 加载现有记录失败: Cannot open console output buffer for reading
+10:11:34 - ERROR - 加载配置失败: the JSON object must be str, bytes or bytearray, not MagicMock
+10:11:34 - ERROR - 加载现有记录失败: Cannot open console output buffer for reading
+10:11:34 - ERROR - 加载配置失败: the JSON object must be str, bytes or bytearray, not MagicMock

@@ -361,6 +361,7 @@ def generate_next_id(csv_path: Path = None) -> int:
         
     return max_id + 1
 
+
 def export_library_manifest(output_csv_path: str = None) -> str:
 
     """
@@ -375,7 +376,6 @@ def export_library_manifest(output_csv_path: str = None) -> str:
     
     root = get_project_root()
     
-    # 尝试读取配置获取默认路径
     if output_csv_path is None:
         try:
             config_path = root / "config.json"
@@ -393,17 +393,13 @@ def export_library_manifest(output_csv_path: str = None) -> str:
     if not library_dir.exists():
         return f"错误: 书库目录 {library_dir} 不存在"
 
-    # 定义 CSV 表头
     headers = [
         "ID", "文件名", "作者", "系列", "标签", "来源", 
         "后缀", "分类", "导入时间", "文件大小(KB)", "MD5", "文件路径"
     ]
     
     data_rows = []
-    
-    # 获取现有 CSV 中的 ID 映射 (path -> id)
-    # 这样重建清单时可以保持原有文件的 ID 不变
-    existing_ids = {}
+    existing_rows = {}
     next_id_counter = 1
     
     if output_path.exists():
@@ -414,17 +410,16 @@ def export_library_manifest(output_csv_path: str = None) -> str:
                     path = row.get("文件路径")
                     pid = row.get("ID")
                     if path and pid:
+                        existing_rows[path] = row
                         try:
-                            existing_ids[path] = int(pid)
-                            if int(pid) >= next_id_counter:
-                                next_id_counter = int(pid) + 1
+                            pid_int = int(pid)
+                            if pid_int >= next_id_counter:
+                                next_id_counter = pid_int + 1
                         except ValueError:
                             pass
         except Exception:
             pass
             
-    # 递归查找所有文件
-    # 排除 .DS_Store, library_manifest.csv 以及隐藏文件
     for file_path in library_dir.rglob("*"):
         if not file_path.is_file():
             continue
@@ -434,51 +429,57 @@ def export_library_manifest(output_csv_path: str = None) -> str:
             continue
             
         try:
-            # 计算相对于 library 目录的路径
             rel_path = file_path.relative_to(library_dir)
             parts = rel_path.parts
             
-            # 初始化字段
             file_type_category = "unknown"
             author = ""
             series = ""
             
-            # 根据目录深度推断元数据
-            # 假设结构: type/author/series/filename
             if len(parts) >= 1:
-                file_type_category = parts[0] # 第一层通常是分类 (book, image, etc.)
+                file_type_category = parts[0]
             
             if len(parts) >= 2:
-                # 第二层可能是作者，也可能是 unsort
                 if parts[1] != "unsort":
                     author = parts[1]
             
             if len(parts) >= 3:
-                # 第三层可能是系列，也可能是文件名
-                # 只有当后面还有文件名时，这层才算系列
                 if len(parts) > 3:
                      series = parts[2]
             
-            # 获取基本文件信息
             stat = file_path.stat()
             file_size = round(stat.st_size / 1024, 2)
             import_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(stat.st_mtime))
-            md5 = generate_file_md5(file_path)
             
-            # 标签和来源无法从路径恢复，留空
+            rel_root_path = str(file_path.relative_to(root))
+            existing = existing_rows.get(rel_root_path)
+            md5 = ""
             tags_str = ""
             source = ""
+            file_id = next_id_counter
             
-            # 确定具体后缀
-            suffix = file_path.suffix[1:] if file_path.suffix else ""
-            
-            # 确定 ID
-            rel_root_path = str(file_path.relative_to(root))
-            if rel_root_path in existing_ids:
-                file_id = existing_ids[rel_root_path]
+            if existing:
+                tags_str = existing.get("标签", "") or ""
+                source = existing.get("来源", "") or ""
+                md5 = existing.get("MD5", "") or ""
+                try:
+                    file_id = int(existing.get("ID", next_id_counter))
+                except ValueError:
+                    file_id = next_id_counter
+                try:
+                    prev_size = float(existing.get("文件大小(KB)", 0))
+                except (ValueError, TypeError):
+                    prev_size = None
+                prev_time = existing.get("导入时间")
+                if md5 and prev_size == file_size and prev_time == import_time:
+                    pass
+                else:
+                    md5 = generate_file_md5(file_path)
             else:
-                file_id = next_id_counter
+                md5 = generate_file_md5(file_path)
                 next_id_counter += 1
+            
+            suffix = file_path.suffix[1:] if file_path.suffix else ""
             
             row = [
                 file_id,
@@ -499,12 +500,8 @@ def export_library_manifest(output_csv_path: str = None) -> str:
         except Exception as e:
             print(f"警告: 无法处理文件 {file_path}: {e}", file=sys.stderr)
 
-    # 写入 CSV 文件
     try:
-        # 确保输出目录存在
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        # 按 ID 排序
         data_rows.sort(key=lambda x: x[0])
         
         with open(output_path, 'w', encoding='utf-8-sig', newline='') as f:
@@ -514,6 +511,14 @@ def export_library_manifest(output_csv_path: str = None) -> str:
         return str(output_path.absolute())
     except Exception as e:
         return f"错误: 无法写入 CSV 文件: {e}"
+
+def update_library_manifest(output_csv_path: str = None) -> str:
+    result = export_library_manifest(output_csv_path)
+    if isinstance(result, str) and result.startswith("错误:"):
+        print(result, file=sys.stderr)
+    else:
+        print(f"📋 清单已更新: {result}")
+    return result
 
 def remove_empty_directories(directory: Path = None) -> int:
     """

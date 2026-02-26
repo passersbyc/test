@@ -4,7 +4,7 @@ import json
 import shutil
 import argparse
 import csv
-from toolboxs import get_project_root, remove_empty_directories
+from toolboxs import get_project_root, remove_empty_directories, update_library_manifest
 
 class DeleteCommand(BaseCommand):
     """
@@ -88,13 +88,14 @@ class DeleteCommand(BaseCommand):
             self._delete_file(ids)
             # 删除空目录
         remove_empty_directories(self.library_path)
+        update_library_manifest()
         return 0
 
     def _delete_author(self, query: str) -> None:
         """
         删除指定作者的所有文件。
         """
-        author_path = self.library_path / query
+        author_path = self.library_path /"小说"/ query
         if author_path.exists():
             if self.args.force or self._confirm(f"❓ 确定要删除作者 {query} 及其所有作品吗?"):
                 try:

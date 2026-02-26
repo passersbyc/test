@@ -1,0 +1,74 @@
+10:04:22 - INFO - 获取到作者名称: kaba
+10:04:43 - ERROR - 下载图片失败 https://n1.kemono.cr/data/c2/1f/c21f34bd7cc16ddb858b2426da2e43748019c8302f50320f6c2e89847c7431a6.jpg: HTTP Error 500: Internal Server Error
+10:04:43 - WARNING - 切换到备用图片服务器: https://n2.kemono.cr
+10:05:45 - ERROR - 下载图片失败 https://n1.kemono.cr/data/1e/9f/1e9f43213bb33f8d8352c0425a198c9af9e3c270543b9877f0dbfaea7e792ca5.jpg: HTTP Error 500: Internal Server Error
+10:05:45 - WARNING - 切换到备用图片服务器: https://n2.kemono.cr
+10:05:58 - ERROR - 下载图片失败 https://n1.kemono.cr/data/e6/d7/e6d77d51ea2dd1d91c10ab0c9c965cdb79c8e75f2641ab32ce9a6d92974014de.jpg: HTTP Error 500: Internal Server Error
+10:05:58 - WARNING - 切换到备用图片服务器: https://n2.kemono.cr
+10:06:45 - ERROR - 下载图片失败 https://n1.kemono.cr/data/58/41/5841348f110f1a39c3ebd3199e58610bcb3306e9bf3b501ffcf3b25776e596a0.jpg: HTTP Error 500: Internal Server Error
+10:06:45 - WARNING - 切换到备用图片服务器: https://n2.kemono.cr
+10:07:10 - ERROR - 下载图片失败 https://n1.kemono.cr/data/c5/54/c554f6e6945ca085001ddb8716170ce6add043e0f762751a83d4a8ebf000a279.jpg: HTTP Error 500: Internal Server Error
+10:07:10 - WARNING - 切换到备用图片服务器: https://n2.kemono.cr
+10:26:07 - INFO - 获取到作者名称: kaba
+10:26:07 - INFO - 开始获取作者帖子列表: 5848128 (fanbox)
+10:26:09 - WARNING - 抓取中断或结束 (Offset 200) HTTP 400: BAD REQUEST {"error":"Offset 200 is bigger than total count 183."}
+10:26:09 - INFO - 获取完成，共找到 183 个帖子
+10:46:38 - WARNING - 抓取中断或结束 (Offset 200) HTTP 400: BAD REQUEST {"error":"Offset 200 is bigger than total count 183."}
+10:46:40 - ERROR - 获取帖子详情失败 - HTTP Error 429: Too Many Requests
+10:46:40 - ERROR - 获取帖子详情失败 - HTTP Error 429: Too Many Requests
+10:46:40 - ERROR - 获取帖子详情失败 - HTTP Error 429: Too Many Requests
+10:46:40 - ERROR - 获取帖子详情失败 - HTTP Error 429: Too Many Requests
+10:48:07 - WARNING - 抓取中断或结束 (Offset 200) HTTP 400: BAD REQUEST {"error":"Offset 200 is bigger than total count 183."}
+10:48:08 - ERROR - 获取帖子详情失败 - HTTP Error 429: Too Many Requests
+10:48:08 - ERROR - 获取帖子详情失败 - HTTP Error 429: Too Many Requests
+10:49:11 - ERROR - 获取帖子详情失败 - HTTP Error 429: Too Many Requests
+10:51:25 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/25528303 (Caused by ResponseError('too many 429 error responses'))
+10:51:26 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/25590451 (Caused by ResponseError('too many 429 error responses'))
+10:51:26 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/25518748 (Caused by ResponseError('too many 429 error responses'))
+10:51:27 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/25509944 (Caused by ResponseError('too many 429 error responses'))
+10:51:27 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/25579838 (Caused by ResponseError('too many 429 error responses'))
+10:51:28 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/25503513 (Caused by ResponseError('too many 429 error responses'))
+10:51:28 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/25569965 (Caused by ResponseError('too many 429 error responses'))
+10:51:29 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/25558612 (Caused by ResponseError('too many 429 error responses'))
+10:51:29 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/25549238 (Caused by ResponseError('too many 429 error responses'))
+10:51:30 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/25538093 (Caused by ResponseError('too many 429 error responses'))
+10:51:58 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/25528303 (Caused by ResponseError('too many 429 error responses'))
+10:51:59 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/25590451 (Caused by ResponseError('too many 429 error responses'))
+10:51:59 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/25518748 (Caused by ResponseError('too many 429 error responses'))
+10:52:00 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/25509944 (Caused by ResponseError('too many 429 error responses'))
+10:52:00 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/25579838 (Caused by ResponseError('too many 429 error responses'))
+10:52:01 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/25503513 (Caused by ResponseError('too many 429 error responses'))
+10:52:01 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/25569965 (Caused by ResponseError('too many 429 error responses'))
+10:52:02 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/25558612 (Caused by ResponseError('too many 429 error responses'))
+10:52:02 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/25549238 (Caused by ResponseError('too many 429 error responses'))
+10:52:03 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/25538093 (Caused by ResponseError('too many 429 error responses'))
+10:53:55 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24764267 (Caused by ResponseError('too many 429 error responses'))
+10:53:55 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24757959 (Caused by ResponseError('too many 429 error responses'))
+10:53:56 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24713682 (Caused by ResponseError('too many 429 error responses'))
+10:53:56 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24749490 (Caused by ResponseError('too many 429 error responses'))
+10:53:57 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24705106 (Caused by ResponseError('too many 429 error responses'))
+10:53:57 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24694999 (Caused by ResponseError('too many 429 error responses'))
+10:53:58 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24739114 (Caused by ResponseError('too many 429 error responses'))
+10:53:58 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24730906 (Caused by ResponseError('too many 429 error responses'))
+10:53:59 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24723485 (Caused by ResponseError('too many 429 error responses'))
+10:53:59 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24683802 (Caused by ResponseError('too many 429 error responses'))
+10:54:28 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24764267 (Caused by ResponseError('too many 429 error responses'))
+10:54:28 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24757959 (Caused by ResponseError('too many 429 error responses'))
+10:54:29 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24713682 (Caused by ResponseError('too many 429 error responses'))
+10:54:30 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24749490 (Caused by ResponseError('too many 429 error responses'))
+10:54:30 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24705106 (Caused by ResponseError('too many 429 error responses'))
+10:54:31 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24694999 (Caused by ResponseError('too many 429 error responses'))
+10:54:31 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24739114 (Caused by ResponseError('too many 429 error responses'))
+10:54:32 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24730906 (Caused by ResponseError('too many 429 error responses'))
+10:54:32 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24723485 (Caused by ResponseError('too many 429 error responses'))
+10:54:33 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24683802 (Caused by ResponseError('too many 429 error responses'))
+10:55:03 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24764267 (Caused by ResponseError('too many 429 error responses'))
+10:55:03 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24757959 (Caused by ResponseError('too many 429 error responses'))
+10:55:04 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24713682 (Caused by ResponseError('too many 429 error responses'))
+10:55:04 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24749490 (Caused by ResponseError('too many 429 error responses'))
+10:55:05 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24705106 (Caused by ResponseError('too many 429 error responses'))
+10:55:06 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24694999 (Caused by ResponseError('too many 429 error responses'))
+10:55:06 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24739114 (Caused by ResponseError('too many 429 error responses'))
+10:55:07 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24730906 (Caused by ResponseError('too many 429 error responses'))
+10:55:07 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24723485 (Caused by ResponseError('too many 429 error responses'))
+10:55:08 - ERROR - 请求失败: HTTPSConnectionPool(host='www.pixiv.net', port=443): Max retries exceeded with url: /ajax/novel/24683802 (Caused by ResponseError('too many 429 error responses'))

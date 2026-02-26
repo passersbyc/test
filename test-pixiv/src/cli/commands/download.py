@@ -1,6 +1,7 @@
 import argparse
 from src.cli.core import BaseCommand
 from src.cli.downplugin.pixiv import PixivDownloader
+from src.cli.downplugin.kemono import KemonoDownloader
 from typing import List
 
 class DownloadCommand(BaseCommand):
@@ -8,6 +9,7 @@ class DownloadCommand(BaseCommand):
         super().__init__()
         self.args = None
         self._pixiv = PixivDownloader()
+        self._kemono = KemonoDownloader()
 
     @property
     def name(self) -> str:
@@ -31,7 +33,7 @@ class DownloadCommand(BaseCommand):
             "urls",
             type=str,
             nargs='+',
-            help="要下载的资源网址（支持 pixiv 插画/漫画/小说）"
+            help="要下载的资源网址（支持 pixiv 与 kemono）"
         )
 
     def execute(self, args: argparse.Namespace) -> int:
@@ -53,7 +55,11 @@ class DownloadCommand(BaseCommand):
                 stats = self._pixiv.process_url(u)
                 if stats["success"] == 0 and stats["skipped"] == 0 and stats["failed"] == 0:
                      print("❌ 处理似乎未执行任何操作，请检查 URL 是否有效。")
+            elif "kemono.cr" in u:
+                stats = self._kemono.process_url(u)
+                if stats["success"] == 0 and stats["skipped"] == 0 and stats["failed"] == 0:
+                    print("❌ 处理似乎未执行任何操作，请检查 URL 是否有效。")
             else:
-                print("⚠️ 暂不支持该网址，目前仅支持 pixiv.net")
+                print("⚠️ 暂不支持该网址，目前仅支持 pixiv.net 与 kemono.cr")
                 
         return 0

@@ -15,6 +15,8 @@ import html
 import sys
 import shutil
 import zipfile
+import mimetypes
+import logging
 from types import SimpleNamespace
 import csv
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
@@ -31,6 +33,32 @@ from toolboxs import (
     supplement_csv,
     generate_file_md5,
 )
+
+class TqdmLoggingHandler(logging.Handler):
+    def __init__(self, level=logging.NOTSET):
+        super().__init__(level)
+
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            tqdm.write(msg)
+            self.flush()
+        except Exception:
+            self.handleError(record)
+
+def setup_logging():
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s',
+        datefmt='%H:%M:%S',
+        handlers=[
+            logging.FileHandler("kemono.log", encoding='utf-8'),
+            TqdmLoggingHandler()
+        ]
+    )
+
+setup_logging()
+logger = logging.getLogger(__name__)
 
 class PixivDownloader:
     """
@@ -69,9 +97,13 @@ class PixivDownloader:
         self.retry_429_max_workers = 2
         self._rate_lock = threading.Lock()
         self._rate_next_ts = 0.0
+        self.image_rate_limit_rps = 6.0
+        self._image_rate_lock = threading.Lock()
+        self._image_rate_next_ts = 0.0
         self.existing_sources = set()
         self._load_existing_sources()
         self._load_config()
+        self.download_file_path = "downloads"
 
     def _load_existing_sources(self):
         """
@@ -90,6 +122,7 @@ class PixivDownloader:
             print(f"📚 已加载 {len(self.existing_sources)} 条现有记录")
         except Exception as e:
             print(f"⚠️ 加载现有记录失败: {e}")
+            logger.error(f"加载现有记录失败: {e}")
 
     def _load_config(self):
         """
@@ -101,6 +134,7 @@ class PixivDownloader:
             
             if not config_path.exists():
                 print("警告: 配置文件 config.json 不存在。")
+                logger.error("配置文件 config.json 不存在。")
                 return
 
             config = json.loads(config_path.read_text(encoding="utf-8"))
@@ -122,9 +156,11 @@ class PixivDownloader:
                 print("警告: config.json 中未找到 pixiv cookie。")
 
             download_config = config.get("download", {})
+            download_file_path = config.get("download_file_path")
             max_workers = download_config.get("max_workers")
             timeout = download_config.get("timeout")
             rate_limit_rps = download_config.get("rate_limit_rps")
+            image_rate_limit_rps = download_config.get("image_rate_limit_rps")
             retry_429 = download_config.get("retry_429")
             retry_429_delay_seconds = download_config.get("retry_429_delay_seconds")
             retry_429_max_workers = download_config.get("retry_429_max_workers")
@@ -134,6 +170,8 @@ class PixivDownloader:
                 self.request_timeout = int(timeout)
             if isinstance(rate_limit_rps, (int, float)) and rate_limit_rps >= 0:
                 self.rate_limit_rps = float(rate_limit_rps)
+            if isinstance(image_rate_limit_rps, (int, float)) and image_rate_limit_rps >= 0:
+                self.image_rate_limit_rps = float(image_rate_limit_rps)
             if isinstance(retry_429, bool):
                 self.retry_429 = retry_429
             if isinstance(retry_429_delay_seconds, (int, float)) and retry_429_delay_seconds >= 0:
@@ -142,15 +180,20 @@ class PixivDownloader:
                 self.retry_429_max_workers = retry_429_max_workers
             else:
                 self.retry_429_max_workers = max(1, self.max_workers // 2)
+            if isinstance(download_file_path, str) and download_file_path.strip():
+                self.download_file_path = download_file_path.strip()
             
         except Exception as e:
             print(f"加载配置失败: {e}")
+            logger.error(f"加载配置失败: {e}")
             # 设置默认 URL 以防万一
             self.base_url = "https://www.pixiv.net"
             self.ajax_url = "https://www.pixiv.net/ajax/illust"
 
     def _set_last_error(self, message: str) -> None:
         self._last_error = message or ""
+        if message:
+            logger.error(message)
 
     def _clear_last_error(self) -> None:
         self._last_error = ""
@@ -167,6 +210,21 @@ class PixivDownloader:
             else:
                 wait = self._rate_next_ts - now
                 self._rate_next_ts += interval
+        if wait > 0:
+            time.sleep(wait)
+
+    def _rate_limit_image(self) -> None:
+        if self.image_rate_limit_rps <= 0:
+            return
+        interval = 1.0 / self.image_rate_limit_rps
+        wait = 0.0
+        now = time.monotonic()
+        with self._image_rate_lock:
+            if self._image_rate_next_ts <= now:
+                self._image_rate_next_ts = now + interval
+            else:
+                wait = self._image_rate_next_ts - now
+                self._image_rate_next_ts += interval
         if wait > 0:
             time.sleep(wait)
 
@@ -329,40 +387,297 @@ class PixivDownloader:
             if not q.exists():
                 return q
             i += 1
-    def _write_epub(self, text: str, title: str, author: str, identifier: str, output_path: Path) -> bool:
+    def _guess_image_meta(self, url: str, content_type: Optional[str]) -> tuple[str, str]:
+        mime = None
+        if content_type:
+            mime = content_type.split(";")[0].strip()
+        ext = mimetypes.guess_extension(mime) if mime else None
+        if not ext and url:
+            ext = Path(urlparse(url).path).suffix
+        if not ext:
+            ext = ".jpg"
+        if not mime:
+            mime = mimetypes.types_map.get(ext.lower(), "image/jpeg")
+        return ext, mime
+
+    def _download_binary(self, url: str, timeout: int = 30, use_image_limit: bool = False) -> tuple[Optional[bytes], Optional[str], Optional[str]]:
+        try:
+            if use_image_limit:
+                self._rate_limit_image()
+            else:
+                self._rate_limit()
+            r = self.session.get(url, timeout=timeout)
+            if not r.ok or not r.content:
+                return None, None, None
+            ext, mime = self._guess_image_meta(url, r.headers.get("Content-Type"))
+            return r.content, ext, mime
+        except requests.exceptions.RequestException:
+            return None, None, None
+
+    def _extract_tags(self, body: dict) -> list[str]:
+        tags = body.get("tags")
+        res = []
+        if isinstance(tags, list):
+            for t in tags:
+                if isinstance(t, str) and t.strip():
+                    res.append(t.strip())
+                elif isinstance(t, dict) and t.get("tag"):
+                    res.append(str(t.get("tag")).strip())
+        elif isinstance(tags, dict):
+            tl = tags.get("tags") or []
+            for t in tl:
+                if isinstance(t, dict) and t.get("tag"):
+                    res.append(str(t.get("tag")).strip())
+                elif isinstance(t, str) and t.strip():
+                    res.append(t.strip())
+        return [t for t in res if t]
+
+    def _collect_image_url(self, value: Any) -> Optional[str]:
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+        if isinstance(value, dict):
+            url = value.get("url") or value.get("original") or value.get("originalUrl")
+            if url:
+                return str(url)
+            urls = value.get("urls") or value.get("imageUrls") or value.get("image_urls")
+            if isinstance(urls, dict):
+                for key in ["original", "originalImageUrl", "raw", "1200x1200", "large", "regular", "medium", "small"]:
+                    u = urls.get(key)
+                    if u:
+                        return str(u)
+        return None
+
+    def _extract_novel_images(self, body: dict) -> dict[str, str]:
+        result = {}
+        candidates = []
+        for key in ["textEmbeddedImages", "images", "imageUrls", "image_urls", "illusts", "illustImages", "illustsMap", "uploadedImages", "uploadedImage", "uploadedimage"]:
+            v = body.get(key)
+            if v:
+                candidates.append(v)
+        for obj in candidates:
+            if isinstance(obj, dict):
+                for k, v in obj.items():
+                    if isinstance(v, dict):
+                        vid = v.get("novelImageId") or v.get("id") or v.get("imageId") or v.get("image_id") or v.get("illustId") or v.get("illust_id")
+                        url = self._collect_image_url(v)
+                        if url:
+                            result[str(vid or k)] = url
+                    else:
+                        url = self._collect_image_url(v)
+                        if url:
+                            result[str(k)] = url
+            elif isinstance(obj, list):
+                for idx, v in enumerate(obj):
+                    if isinstance(v, dict):
+                        vid = v.get("id") or v.get("imageId") or v.get("image_id") or v.get("illustId") or v.get("illust_id")
+                        url = self._collect_image_url(v)
+                        if url:
+                            result[str(vid or idx)] = url
+                    else:
+                        url = self._collect_image_url(v)
+                        if url:
+                            result[str(idx)] = url
+        return result
+
+    def _resolve_novel_image_url(self, image_id: str, images: dict[str, str]) -> Optional[str]:
+        if image_id in images:
+            return images[image_id]
+        return None
+
+    def _build_inline_images(self, text: str, body: dict, prefix: str = "") -> tuple[str, list[dict]]:
+        images = self._extract_novel_images(body)
+        pattern = re.compile(r"\[(?:pixivimage|uploadedimage):(\d+)\]")
+        text = text or ""
+        matches = list(pattern.finditer(text))
+        if not matches:
+            return text, []
+        image_ids = [m.group(1) for m in matches]
+        url_map = {}
+        for image_id in set(image_ids):
+            url_map[image_id] = self._resolve_novel_image_url(image_id, images)
+        cache = {}
+        tasks = {}
+        max_workers = max(1, min(self.max_workers, 6))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            for image_id, url in url_map.items():
+                if not url:
+                    continue
+                tasks[image_id] = executor.submit(self._download_binary, url, 30, True)
+            for image_id, future in tasks.items():
+                data, ext, mime = future.result()
+                if data and ext and mime:
+                    cache[image_id] = (data, ext, mime)
+        parts = []
+        last = 0
+        inline_images = []
+        for idx, m in enumerate(matches, start=1):
+            parts.append(text[last:m.start()])
+            image_id = m.group(1)
+            cached = cache.get(image_id)
+            if cached:
+                data, ext, mime = cached
+                href = f"images/inline_{prefix}{idx}{ext}"
+                placeholder = f"__PIXIV_IMAGE_{prefix}{idx}__"
+                inline_images.append({
+                    "placeholder": placeholder,
+                    "href": href,
+                    "bytes": data,
+                    "mime": mime
+                })
+                parts.append(placeholder)
+            last = m.end()
+        parts.append(text[last:])
+        replaced = "".join(parts)
+        return replaced, inline_images
+
+    def _write_epub(self, text: str, metadata: dict, identifier: str, output_path: Path, cover_bytes: Optional[bytes] = None, cover_ext: Optional[str] = None, cover_mime: Optional[str] = None, inline_images: Optional[list[dict]] = None, chapters: Optional[list[dict]] = None) -> bool:
         try:
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            safe_title = html.escape(title or "untitled")
-            safe_author = html.escape(author or "")
+            title = metadata.get("title") or "untitled"
+            author = metadata.get("author") or ""
+            description = metadata.get("description") or ""
+            tags = metadata.get("tags") or []
+            pub_date = metadata.get("date") or ""
+            safe_title = html.escape(title)
+            safe_author = html.escape(author)
             safe_id = html.escape(identifier or title or "pixiv-novel")
-            paragraphs = [line.strip() for line in (text or "").splitlines()]
-            body_parts = [f"<p>{html.escape(p)}</p>" for p in paragraphs if p]
+            safe_desc = html.escape(description)
+            inline_images = inline_images or []
+            placeholder_map = {i["placeholder"]: i for i in inline_images if i.get("placeholder")}
+            placeholder_pattern = None
+            if placeholder_map:
+                placeholder_pattern = re.compile("(" + "|".join(re.escape(k) for k in placeholder_map.keys()) + ")")
+            body_parts = []
+            def render_text(txt: str):
+                raw = (txt or "").replace("\r\n", "\n")
+                blocks = [b.strip() for b in raw.split("\n\n") if b.strip()]
+                if not blocks:
+                    blocks = [b.strip() for b in raw.splitlines() if b.strip()]
+                for b in blocks:
+                    if placeholder_pattern and placeholder_pattern.search(b):
+                        parts = placeholder_pattern.split(b)
+                        for part in parts:
+                            if part in placeholder_map:
+                                href = placeholder_map[part]["href"]
+                                body_parts.append('<div class="illust"><img src="' + href + '" alt="illustration"/></div>')
+                            else:
+                                lines = [html.escape(x) for x in part.split("\n") if x.strip()]
+                                if lines:
+                                    body_parts.append("<p>" + "<br/>".join(lines) + "</p>")
+                    else:
+                        lines = [html.escape(x) for x in b.split("\n") if x.strip()]
+                        if lines:
+                            body_parts.append("<p>" + "<br/>".join(lines) + "</p>")
+            if chapters:
+                for idx, ch in enumerate(chapters, start=1):
+                    ch_title = ch.get("title") or f"第{idx}话"
+                    body_parts.append('<h2 id="ch' + str(idx) + '">' + html.escape(str(ch_title)) + "</h2>")
+                    render_text(ch.get("text") or "")
+            else:
+                render_text(text or "")
             body_html = "\n".join(body_parts) if body_parts else "<p></p>"
+            meta_lines = [
+                '    <dc:identifier id="BookId">' + safe_id + "</dc:identifier>",
+                '    <dc:title>' + safe_title + "</dc:title>",
+                '    <dc:creator>' + safe_author + "</dc:creator>",
+                '    <dc:language>zh</dc:language>',
+            ]
+            if safe_desc:
+                meta_lines.append("    <dc:description>" + safe_desc + "</dc:description>")
+            if pub_date:
+                meta_lines.append("    <dc:date>" + html.escape(str(pub_date)) + "</dc:date>")
+            for t in tags:
+                if t:
+                    meta_lines.append("    <dc:subject>" + html.escape(str(t)) + "</dc:subject>")
+            if cover_bytes:
+                meta_lines.append('    <meta name="cover" content="cover-image"/>')
+            meta_block = "\n".join(meta_lines)
+            styles_css = "body{font-family:serif;line-height:1.6;}h1{margin:0.6em 0;}h2{margin:1em 0 0.4em;}p{margin:0.5em 0;} .meta{font-size:0.9em;color:#555;} .cover{display:flex;justify-content:center;align-items:center;height:100vh;} .illust{margin:1em 0;text-align:center;} img{max-width:100%;height:auto;}"
             content_xhtml = (
                 '<?xml version="1.0" encoding="utf-8"?>\n'
                 '<!DOCTYPE html>\n'
                 '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh" lang="zh">\n'
-                "<head><title>" + safe_title + '</title><meta charset="utf-8"/></head>\n'
-                "<body>\n" + body_html + "\n</body>\n</html>\n"
+                "<head><title>" + safe_title + '</title><meta charset="utf-8"/><link rel="stylesheet" type="text/css" href="styles.css"/></head>\n'
+                "<body>\n"
+                "<h1>" + safe_title + "</h1>\n"
+                '<div class="meta">' + (safe_author or "") + "</div>\n"
+                + (f'<div class="meta">{safe_desc}</div>\n' if safe_desc else "")
+                + (f'<div class="meta">标签：{", ".join([html.escape(str(t)) for t in tags])}</div>\n' if tags else "")
+                + body_html
+                + "\n</body>\n</html>\n"
             )
+            manifest_items = [
+                '    <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>',
+                '    <item id="content" href="content.xhtml" media-type="application/xhtml+xml"/>',
+                '    <item id="style" href="styles.css" media-type="text/css"/>'
+            ]
+            spine_items = []
+            cover_xhtml = None
+            cover_href = None
+            cover_image_href = None
+            if cover_bytes:
+                cover_ext = cover_ext or ".jpg"
+                cover_mime = cover_mime or mimetypes.types_map.get(cover_ext.lower(), "image/jpeg")
+                cover_image_href = f"images/cover{cover_ext}"
+                cover_href = "cover.xhtml"
+                manifest_items.append('    <item id="cover" href="cover.xhtml" media-type="application/xhtml+xml"/>')
+                manifest_items.append(f'    <item id="cover-image" href="{cover_image_href}" media-type="{cover_mime}"/>')
+                spine_items.append('    <itemref idref="cover"/>')
+                cover_xhtml = (
+                    '<?xml version="1.0" encoding="utf-8"?>\n'
+                    '<!DOCTYPE html>\n'
+                    '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="zh" lang="zh">\n'
+                    '<head><title>Cover</title><meta charset="utf-8"/><link rel="stylesheet" type="text/css" href="styles.css"/></head>\n'
+                    '<body class="cover"><img src="' + cover_image_href + '" alt="cover"/></body>\n'
+                    "</html>\n"
+                )
+            for idx, item in enumerate(inline_images, start=1):
+                href = item.get("href")
+                mime = item.get("mime")
+                if href and mime:
+                    manifest_items.append(f'    <item id="inline-{idx}" href="{href}" media-type="{mime}"/>')
+            spine_items.append('    <itemref idref="content"/>')
             content_opf = (
                 '<?xml version="1.0" encoding="utf-8"?>\n'
                 '<package xmlns="http://www.idpf.org/2007/opf" unique-identifier="BookId" version="2.0">\n'
                 '  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">\n'
-                '    <dc:identifier id="BookId">' + safe_id + "</dc:identifier>\n"
-                '    <dc:title>' + safe_title + "</dc:title>\n"
-                '    <dc:creator>' + safe_author + "</dc:creator>\n"
-                '    <dc:language>zh</dc:language>\n'
+                + meta_block + "\n"
                 "  </metadata>\n"
                 "  <manifest>\n"
-                '    <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>\n'
-                '    <item id="content" href="content.xhtml" media-type="application/xhtml+xml"/>\n'
+                + "\n".join(manifest_items) + "\n"
                 "  </manifest>\n"
                 '  <spine toc="ncx">\n'
-                '    <itemref idref="content"/>\n'
+                + "\n".join(spine_items) + "\n"
                 "  </spine>\n"
                 "</package>\n"
             )
+            nav_points = []
+            play_order = 1
+            if cover_href:
+                nav_points.append(
+                    '    <navPoint id="navPoint-' + str(play_order) + '" playOrder="' + str(play_order) + '">\n'
+                    "      <navLabel><text>封面</text></navLabel>\n"
+                    '      <content src="' + cover_href + '"/>\n'
+                    "    </navPoint>"
+                )
+                play_order += 1
+            nav_points.append(
+                '    <navPoint id="navPoint-' + str(play_order) + '" playOrder="' + str(play_order) + '">\n'
+                "      <navLabel><text>" + safe_title + "</text></navLabel>\n"
+                '      <content src="content.xhtml"/>\n'
+                "    </navPoint>"
+            )
+            play_order += 1
+            if chapters:
+                for idx, ch in enumerate(chapters, start=1):
+                    ch_title = html.escape(str(ch.get("title") or f"第{idx}话"))
+                    nav_points.append(
+                        '    <navPoint id="navPoint-' + str(play_order) + '" playOrder="' + str(play_order) + '">\n'
+                        "      <navLabel><text>" + ch_title + "</text></navLabel>\n"
+                        '      <content src="content.xhtml#ch' + str(idx) + '"/>\n'
+                        "    </navPoint>"
+                    )
+                    play_order += 1
             toc_ncx = (
                 '<?xml version="1.0" encoding="utf-8"?>\n'
                 '<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">\n'
@@ -374,10 +689,7 @@ class PixivDownloader:
                 "  </head>\n"
                 "  <docTitle><text>" + safe_title + "</text></docTitle>\n"
                 "  <navMap>\n"
-                '    <navPoint id="navPoint-1" playOrder="1">\n'
-                "      <navLabel><text>" + safe_title + "</text></navLabel>\n"
-                '      <content src="content.xhtml"/>\n'
-                "    </navPoint>\n"
+                + "\n".join(nav_points) + "\n"
                 "  </navMap>\n"
                 "</ncx>\n"
             )
@@ -394,6 +706,15 @@ class PixivDownloader:
                 zf.writestr("META-INF/container.xml", container_xml, compress_type=zipfile.ZIP_DEFLATED)
                 zf.writestr("OEBPS/content.opf", content_opf, compress_type=zipfile.ZIP_DEFLATED)
                 zf.writestr("OEBPS/toc.ncx", toc_ncx, compress_type=zipfile.ZIP_DEFLATED)
+                zf.writestr("OEBPS/styles.css", styles_css, compress_type=zipfile.ZIP_DEFLATED)
+                if cover_xhtml and cover_image_href and cover_bytes:
+                    zf.writestr("OEBPS/cover.xhtml", cover_xhtml, compress_type=zipfile.ZIP_DEFLATED)
+                    zf.writestr(f"OEBPS/{cover_image_href}", cover_bytes, compress_type=zipfile.ZIP_DEFLATED)
+                for item in inline_images:
+                    href = item.get("href")
+                    data = item.get("bytes")
+                    if href and data:
+                        zf.writestr(f"OEBPS/{href}", data, compress_type=zipfile.ZIP_DEFLATED)
                 zf.writestr("OEBPS/content.xhtml", content_xhtml, compress_type=zipfile.ZIP_DEFLATED)
             return True
         except Exception as e:
@@ -420,10 +741,90 @@ class PixivDownloader:
             self._set_last_error(f"解析失败: {url}")
             return []
 
+    def _download_novel_series(self, series_url: str, save_dir: Path) -> tuple[Optional[Path], Optional[Dict[str, Any]]]:
+        m = re.search(r"/novel/series/(\d+)", series_url)
+        if not m:
+            self._set_last_error("系列ID解析失败")
+            return None, None
+        sid = m.group(1)
+        series_info = self._get_json_with_backoff(f"{self.base_url}/ajax/novel/series/{sid}", timeout=20)
+        if not series_info or series_info.get("error"):
+            if series_info and series_info.get("error"):
+                self._set_last_error(series_info.get("message") or "系列信息接口返回错误")
+            return None, None
+        series_body = series_info.get("body", {}) if isinstance(series_info, dict) else {}
+        series_title = series_body.get("title") or series_body.get("seriesTitle") or f"series_{sid}"
+        series_title = clean_filename(series_title)
+        author = series_body.get("userName") or series_body.get("user_name") or ""
+        description = description_to_text(series_body.get("description") or series_body.get("caption") or "")
+        pub_date = series_body.get("updateDate") or series_body.get("lastUpdated") or series_body.get("updateAt") or ""
+        tags = self._extract_tags(series_body)
+        cover_url = series_body.get("coverUrl") or series_body.get("coverURL") or series_body.get("cover_url")
+        cover_bytes = None
+        cover_ext = None
+        cover_mime = None
+        if cover_url:
+            cover_bytes, cover_ext, cover_mime = self._download_binary(cover_url, 20, True)
+        titles_info = self._get_json_with_backoff(f"{self.base_url}/ajax/novel/series/{sid}/content_titles", timeout=20)
+        if not titles_info or titles_info.get("error"):
+            if titles_info and titles_info.get("error"):
+                self._set_last_error(titles_info.get("message") or "系列章节接口返回错误")
+            return None, None
+        items = titles_info.get("body", []) if isinstance(titles_info, dict) else []
+        if not items:
+            self._set_last_error("系列章节为空")
+            return None, None
+        chapters = []
+        inline_images = []
+        for idx, item in enumerate(items, start=1):
+            nid = item.get("id")
+            if not nid:
+                continue
+            data = self._get_json_with_backoff(f"{self.base_url}/ajax/novel/{nid}", timeout=20)
+            if not data or data.get("error"):
+                continue
+            body = data.get("body", {}) if isinstance(data, dict) else {}
+            if cover_bytes is None:
+                fallback_cover = body.get("coverUrl") or body.get("coverURL") or body.get("cover_url")
+                if not fallback_cover:
+                    imgs = self._extract_novel_images(body)
+                    if imgs:
+                        fallback_cover = next(iter(imgs.values()))
+                if fallback_cover:
+                    cover_bytes, cover_ext, cover_mime = self._download_binary(fallback_cover, 20, True)
+            text = body.get("text") or body.get("content") or body.get("novelText") or ""
+            if not text:
+                text = description_to_text(body.get("description") or body.get("caption") or "")
+            ch_title = item.get("title") or body.get("title") or f"第{idx}话"
+            serial = item.get("serial")
+            if serial and serial not in str(ch_title):
+                ch_title = f"{serial} {ch_title}"
+            text, ch_images = self._build_inline_images(text, body, f"{idx}_")
+            inline_images.extend(ch_images)
+            chapters.append({"title": ch_title, "text": text})
+        if not chapters:
+            self._set_last_error("系列章节下载失败")
+            return None, None
+        out = self._unique_path(save_dir, series_title, ".epub")
+        meta = {
+            "title": series_title,
+            "author": author,
+            "description": description,
+            "tags": tags,
+            "date": pub_date
+        }
+        if not self._write_epub("", meta, sid, out, cover_bytes, cover_ext, cover_mime, inline_images, chapters):
+            return None, None
+        return out, {"type": "novel_series", "id": sid, "title": series_title, "author": author}
+
     def download(self, work_url: str, save_dir: Optional[Path] = None) -> tuple[Optional[Path], Optional[Dict[str, Any]]]:
         if save_dir is None:
-            save_dir = get_project_root() / "downloads"
+            root = get_project_root()
+            path = Path(self.download_file_path)
+            save_dir = path if path.is_absolute() else root / path
         save_dir.mkdir(parents=True, exist_ok=True)
+        if "/novel/series/" in work_url:
+            return self._download_novel_series(work_url, save_dir)
         info = self.get_info(work_url)
         if not info:
             return None, None
@@ -455,9 +856,26 @@ class PixivDownloader:
                         self._set_last_error(f"请求失败: {e}")
                     return None, None
                 text = description_to_text(info.get("description") or "")
+            text, inline_images = self._build_inline_images(text, body)
             out = self._unique_path(save_dir, title, ".epub")
-            author = info.get("author") or ""
-            if not self._write_epub(text, title, author, nid, out):
+            tags = self._extract_tags(body)
+            description = description_to_text(body.get("description") or body.get("caption") or "")
+            author = info.get("author") or body.get("userName") or body.get("user_name") or ""
+            pub_date = body.get("createDate") or body.get("uploadDate") or body.get("published") or ""
+            cover_url = body.get("coverUrl") or body.get("coverURL") or body.get("cover_url")
+            cover_bytes = None
+            cover_ext = None
+            cover_mime = None
+            if cover_url:
+                cover_bytes, cover_ext, cover_mime = self._download_binary(cover_url, 20, True)
+            meta = {
+                "title": title,
+                "author": author,
+                "description": description,
+                "tags": tags,
+                "date": pub_date
+            }
+            if not self._write_epub(text, meta, nid, out, cover_bytes, cover_ext, cover_mime, inline_images):
                 return None, None
             return out, info
         if "/artworks/" in work_url:
@@ -487,7 +905,7 @@ class PixivDownloader:
         return None, None
     def _download_file(self, url: str, save_path: Path) -> bool:
         try:
-            self._rate_limit()
+            self._rate_limit_image()
             with self.session.get(url, stream=True, timeout=30) as r:
                 r.raise_for_status()
                 with open(save_path, "wb") as f:
@@ -664,6 +1082,25 @@ class PixivDownloader:
                     break
         return works
 
+    def get_author_info(self, url: str) -> Optional[tuple[str, int]]:
+        """
+        判断是否为作者主页，如果是则返回 (作者名, 作品数)。
+        """
+        if "/users/" not in url:
+            return None
+            
+        m = re.search(r"/users/(\d+)", url)
+        if not m:
+            return None
+            
+        uid = m.group(1)
+        name = self.get_user_name(uid)
+        if not name:
+            return None
+            
+        works = self.get_user_works(uid)
+        return name, len(works)
+
     def process_url(self, url: str) -> Dict[str, int]:
         """
         处理输入URL，自动识别作品、用户或系列，并下载导入。
@@ -689,7 +1126,7 @@ class PixivDownloader:
             if m:
                 sid = m.group(1)
                 print(f"📚 发现了一套精彩的小说 (ID: {sid})，正在整理章节...")
-                works = self.get_series_works(sid, is_novel=True)
+                works = [url]
                 
         # Illust/Manga Series (user/x/series/y)
         elif "/series/" in url:
@@ -767,7 +1204,7 @@ class PixivDownloader:
         线程工作函数，包含额外的重试逻辑
         """
         # Random delay to avoid burst requests
-        time.sleep(random.uniform(0.5, 1.5))
+        time.sleep(random.uniform(0.1, 0.4))
         
         max_retries = 3
         for attempt in range(max_retries):

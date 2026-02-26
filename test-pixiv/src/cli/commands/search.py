@@ -1,8 +1,9 @@
 import csv
 import argparse
-from pathlib import Path
+import re
+import unicodedata
 from src.cli.core import BaseCommand
-from toolboxs import determine_file_type, get_library_path, generate_file_md5, get_project_root,export_library_manifest
+from toolboxs import update_library_manifest
 
 class SearchCommand(BaseCommand):
     def __init__(self) -> None:
@@ -22,101 +23,73 @@ class SearchCommand(BaseCommand):
         """
         return "search"
 
-    def _search_author(self, query: str) -> list[dict]:
-        """
-        搜索作者名下的作品。
-        :param query: 搜索的作者名称（支持模糊匹配）。
-        :return: 返回包含该作者所有作品信息的字典列表。
-        """
-        results = []
+    def _read_rows(self) -> list[dict]:
         try:
             with open(self.csv_path, 'r', encoding='utf-8-sig') as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    # 获取作者列，如果为空则设为""
-                    author = row.get("作者", "")
-                    if not author:
-                        continue
-                        
-                    # 模糊匹配：只要 query 在作者名中出现即可 (不区分大小写)
-                    if query.lower() in author.lower():
-                        results.append(row)
+                return list(csv.DictReader(f))
         except Exception as e:
             print(f"❌ 读取清单失败: {e}")
-            
-        return results
+            return []
 
-    def _search_series(self, query: str) -> list[dict]:
-        """
-        搜索系列名下的作品。
-        :param query: 搜索的系列名称（支持模糊匹配）。
-        :return: 返回包含该系列所有作品信息的字典列表。
-        """
-        results = []
-        try:
-            with open(self.csv_path, 'r', encoding='utf-8-sig') as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    # 获取系列列，如果为空则设为""
-                    series = row.get("系列", "")
-                    if not series:
-                        continue
-                        
-                    # 模糊匹配：只要 query 在系列名中出现即可 (不区分大小写)
-                    if query.lower() in series.lower():
-                        results.append(row)
-        except Exception as e:
-            print(f"❌ 读取清单失败: {e}")
-            
-        return results
+    def _build_matcher(self, pattern: str, use_regex: bool):
+        if not pattern:
+            return None
+        if use_regex:
+            try:
+                regex = re.compile(pattern, re.IGNORECASE)
+            except re.error as e:
+                raise ValueError(f"正则表达式错误: {e}")
+            return lambda value: bool(regex.search(value or ""))
+        lowered = pattern.lower()
+        return lambda value: lowered in (value or "").lower()
 
-    def _search_type(self, query: str) -> list[dict]:
-        """
-        搜索指定文件类型的作品。
-        :param query: 搜索的文件类型（支持模糊匹配）。
-        :return: 返回包含该类型所有作品信息的字典列表。
-        """
-        results = []
-        try:
-            with open(self.csv_path, 'r', encoding='utf-8-sig') as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    # 获取文件类型列，如果为空则设为""
-                    file_type = row.get("文件类型", "")
-                    if not file_type:
-                        continue
-                        
-                    # 模糊匹配：只要 query 在文件类型中出现即可 (不区分大小写)
-                    if query.lower() in file_type.lower():
-                        results.append(row)
-        except Exception as e:
-            print(f"❌ 读取清单失败: {e}")
-            
-        return results
+    def _match_any(self, matcher, values: list[str]) -> bool:
+        if matcher is None:
+            return False
+        for v in values:
+            if matcher(v):
+                return True
+        return False
 
-    def _search_file(self, query: str) -> list[dict]:
-        """
-        搜索文件名或文件内容。
-        :param query: 搜索的文件名或文件内容（支持模糊匹配）。
-        :return: 返回包含匹配作品信息的字典列表。
-        """
-        results = []
-        try:
-            with open(self.csv_path, 'r', encoding='utf-8-sig') as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    # 获取文件名列，如果为空则设为""
-                    file_name = row.get("文件名", "")
-                    if not file_name:
-                        continue
-                        
-                    # 模糊匹配：只要 query 在文件名中出现即可 (不区分大小写)
-                    if query.lower() in file_name.lower():
-                        results.append(row)
-        except Exception as e:
-            print(f"❌ 读取清单失败: {e}")
-            
-        return results
+    def _text_width(self, text: str) -> int:
+        if text is None:
+            return 0
+        width = 0
+        for ch in str(text):
+            width += 2 if unicodedata.east_asian_width(ch) in ("W", "F") else 1
+        return width
+
+    def _truncate(self, text: str, max_width: int) -> str:
+        if text is None:
+            return ""
+        text = str(text)
+        if self._text_width(text) <= max_width:
+            return text
+        if max_width <= 3:
+            return text[:max_width]
+        target = max_width - 3
+        buf = []
+        w = 0
+        for ch in text:
+            cw = 2 if unicodedata.east_asian_width(ch) in ("W", "F") else 1
+            if w + cw > target:
+                break
+            buf.append(ch)
+            w += cw
+        return "".join(buf) + "..."
+
+    def _pad(self, text: str, width: int) -> str:
+        text = "" if text is None else str(text)
+        diff = width - self._text_width(text)
+        if diff <= 0:
+            return text
+        return text + (" " * diff)
+
+    def _format_row(self, values: list[str], widths: list[int]) -> str:
+        parts = []
+        for v, w in zip(values, widths):
+            parts.append(self._pad(v, w))
+        return " ".join(parts)
 
     def configure_parser(self, parser: argparse.ArgumentParser) -> None:
         """
@@ -132,51 +105,90 @@ class SearchCommand(BaseCommand):
         """
         添加命令行参数。
         """
-        parser.add_argument("query", type=str, nargs="?", help="搜索的文件名（如果使用了 -a/-s/-t 筛选参数，此项可省略）")
+        parser.add_argument("query", type=str, nargs="?", help="搜索的文件名关键词")
         parser.add_argument("-a","--author", type=str, help="作者名称，用于筛选文件")
         parser.add_argument("-s","--series", type=str, help="系列名称，用于筛选文件")
-        parser.add_argument("-t","--type", type=str, help="文件类型，用于筛选文件")
+        parser.add_argument("-t","--type", type=str, help="分类名称，用于筛选文件")
+        parser.add_argument("-g","--tag", type=str, help="标签关键词，用于筛选文件")
+        parser.add_argument("-o","--source", type=str, help="来源关键词，用于筛选文件")
+        parser.add_argument("-k","--keyword", type=str, help="在文件名/作者/系列/标签/来源中搜索关键词")
+        parser.add_argument("--regex", action="store_true", help="使用正则表达式匹配")
+        parser.add_argument("--refresh", action="store_true", help="搜索前先更新清单")
+        parser.add_argument("--limit", type=int, default=0, help="限制输出数量")
 
 
     def execute(self, args: argparse.Namespace) -> int:
         """
         执行搜索操作。
         """
-        # 检查 CSV 路径是否存在
+        if args.refresh:
+            print("🧹 正在刷新清单，请稍等一下下～")
+            update_library_manifest()
+
         if not self.csv_path.exists():
-            print(f"❌ 错误：CSV 路径不存在: {self.csv_path}")
-            return 1
-            
-        results = []
-        
-        # 根据参数选择搜索模式
-        if args.author:
-            print(f"🔍 正在搜索作者包含 '{args.author}' 的作品...")
-            results = self._search_author(args.author)
-        elif args.series:
-            print(f"🔍 正在搜索系列包含 '{args.series}' 的作品...")
-            results = self._search_series(args.series)
-        elif args.type:
-            print(f"🔍 正在搜索类型包含 '{args.type}' 的作品...")
-            results = self._search_type(args.type)
-        else:
-            if not args.query:
-                print("❌ 错误：请提供搜索关键词，或使用 -a/-s/-t 指定筛选条件。")
+            update_library_manifest()
+            if not self.csv_path.exists():
+                print(f"❌ 错误：CSV 路径不存在: {self.csv_path}")
                 return 1
-            print(f"🔍 正在搜索文件名包含 '{args.query}' 的作品...")
-            results = self._search_file(args.query)
+            
+        if not any([args.query, args.author, args.series, args.type, args.tag, args.source, args.keyword]):
+            print("❌ 需要一点关键词线索喔～请输入搜索关键词或筛选条件。")
+            return 1
+
+        try:
+            matcher_query = self._build_matcher(args.query, args.regex)
+            matcher_author = self._build_matcher(args.author, args.regex)
+            matcher_series = self._build_matcher(args.series, args.regex)
+            matcher_type = self._build_matcher(args.type, args.regex)
+            matcher_tag = self._build_matcher(args.tag, args.regex)
+            matcher_source = self._build_matcher(args.source, args.regex)
+            matcher_keyword = self._build_matcher(args.keyword, args.regex)
+        except ValueError as e:
+            print(f"❌ {e}")
+            return 1
+
+        results = []
+        rows = self._read_rows()
+        for row in rows:
+            file_name = row.get("文件名", "")
+            author = row.get("作者", "")
+            series = row.get("系列", "")
+            tags = row.get("标签", "")
+            source = row.get("来源", "")
+            file_type = row.get("分类", "") or row.get("文件类型", "") or row.get("类型", "")
+
+            if matcher_query and not matcher_query(file_name):
+                continue
+            if matcher_author and not matcher_author(author):
+                continue
+            if matcher_series and not matcher_series(series):
+                continue
+            if matcher_tag and not matcher_tag(tags):
+                continue
+            if matcher_source and not matcher_source(source):
+                continue
+            if matcher_type and not matcher_type(file_type):
+                continue
+            if matcher_keyword and not self._match_any(matcher_keyword, [file_name, author, series, tags, source]):
+                continue
+
+            results.append(row)
+            if args.limit > 0 and len(results) >= args.limit:
+                break
             
         # 输出结果
         if not results:
-            print("📭 未找到匹配的结果。")
+            print("📭 呜呜，没有找到匹配结果～")
             return 0
             
-        print(f"🎉 找到 {len(results)} 个匹配结果：")
-        print("-" * 85)
-        # 打印表头 - 调整宽度
-        # ID: 6 chars, 文件名: 40 chars, 作者: 20 chars, 大小: 12 chars
-        print(f"{'ID':<6} {'文件名':<40} {'作者':<20} {'大小(KB)':<12}")
-        print("-" * 85)
+        widths = [6, 40, 18, 10, 12]
+        line_len = sum(widths) + (len(widths) - 1)
+        line = "─" * line_len
+        print(f"✨ 找到 {len(results)} 个小宝藏：")
+        print(f"╭{line}╮")
+        header = self._format_row(["ID", "文件名", "作者", "分类", "大小(KB)"], widths)
+        print(f"│{header}│")
+        print(f"├{line}┤")
         
         id_list = []
         for row in results:
@@ -184,23 +196,21 @@ class SearchCommand(BaseCommand):
             if file_id != 'N/A':
                 id_list.append(file_id)
             
-            # 截断过长的文件名以保持对齐 (中文占2字符宽度，这里简单处理，实际应计算宽字符)
-            # 增加显示长度
             name = row.get('文件名', '')
-            if len(name) > 38:
-                name = name[:35] + "..."
-                
+            name = self._truncate(name, widths[1])
             author = row.get('作者', '未知')
-            if len(author) > 18:
-                author = author[:15] + "..."
+            author = self._truncate(author, widths[2])
                 
             size = row.get('文件大小(KB)', '0')
+            file_type = row.get("分类", "") or row.get("文件类型", "") or row.get("类型", "")
+            file_type = self._truncate(file_type, widths[3])
             
-            print(f"{file_id:<6} {name:<40} {author:<20} {size:<12}")
+            row_text = self._format_row([str(file_id), name, author, file_type, str(size)], widths)
+            print(f"│{row_text}│")
         
-        print("-" * 85)
-        # 打印ID列表摘要
+        print(f"╰{line}╯")
         if id_list:
-            print(f"📋 ID 列表: {', '.join(id_list)}")
+            print(f"🧾 可用 ID：{', '.join(id_list)}")
+        print("🐾 搜索完成，贴贴～")
             
         return 0
