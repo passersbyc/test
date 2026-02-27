@@ -8,6 +8,7 @@ import zipfile
 import shutil
 from pathlib import Path
 import html
+import logging
 
 def get_project_root() -> Path:
     """
@@ -17,6 +18,38 @@ def get_project_root() -> Path:
     # __file__ 是当前文件 (toolboxs.py) 的路径
     # 因为 toolboxs.py 就在根目录下，所以它的 parent 就是根目录
     return Path(__file__).parent.absolute()
+
+def setup_logger(name: str = "toolboxs") -> logging.Logger:
+    """
+    配置并返回一个日志记录器。
+    
+    :param name: logger 的名称
+    :return: 配置好的 logger 实例
+    """
+    logger = logging.getLogger(name)
+    if logger.hasHandlers():
+        return logger
+        
+    logger.setLevel(logging.INFO)
+    
+    # 获取日志文件路径
+    log_path = get_project_root() / "application.log"
+    
+    # 文件处理器 - 详细格式 (包含时间、模块、级别)
+    file_handler = logging.FileHandler(str(log_path), encoding='utf-8')
+    file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(file_formatter)
+    logger.addHandler(file_handler)
+    
+    # 控制台处理器 - 简洁格式 (只输出消息，保持可爱风格)
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_formatter = logging.Formatter('%(message)s')
+    console_handler.setFormatter(console_formatter)
+    logger.addHandler(console_handler)
+    
+    return logger
+
+logger = setup_logger()
 
 def get_library_path() -> Path:
     """
@@ -56,7 +89,7 @@ def translate_error(message: str) -> str:
             config = json.loads(config_path.read_text(encoding="utf-8"))
             translations = config.get("translations", {})
         except Exception as e:
-            print(f"警告: 无法读取配置文件 {config_path}: {e}", file=sys.stderr)
+            logger.warning(f"警告: 无法读取配置文件 {config_path}: {e}")
 
     translated = message
     for eng, chn in translations.items():
@@ -85,7 +118,7 @@ def determine_file_type(file_path: str) -> str:
             config = json.loads(config_path.read_text(encoding="utf-8"))
             filetype_mapping = config.get("filetype", {})
         except Exception as e:
-            print(f"警告: 无法读取配置文件 {config_path}: {e}", file=sys.stderr)
+            logger.warning(f"警告: 无法读取配置文件 {config_path}: {e}")
     
     return filetype_mapping.get(ext_key, "unknown")
 
@@ -155,7 +188,7 @@ def check_duplicate_by_md5(file_md5: str, manifest_name: str = None) -> tuple[bo
                 if row.get("MD5") == file_md5:
                     return True, row.get("文件名", "未知文件")
     except Exception as e:
-        print(f"警告: 查重时读取清单失败: {e}", file=sys.stderr)
+        logger.warning(f"警告: 查重时读取清单失败: {e}")
     return False, ""
 
 def supplement_csv(metadata: dict) -> None:
@@ -170,11 +203,11 @@ def supplement_csv(metadata: dict) -> None:
             except Exception:
                 pass
     except Exception as e:
-        print(f"❌ 读取配置失败: {e}")
+        logger.error(f"💦 哎呀，读取配置时出错了: {e}")
         return
     csv_path = root / manifest_name
     if not csv_path.exists():
-        print(f"⚠️ 清单文件不存在，正在创建: {csv_path}")
+        logger.info(f"📄 清单文件不存在，正在为你创建一张新的: {csv_path.name}")
         csv_path.parent.mkdir(parents=True, exist_ok=True)
     try:
         headers = [
@@ -203,9 +236,9 @@ def supplement_csv(metadata: dict) -> None:
             if f.tell() == 0:
                 writer.writeheader()
             writer.writerow(row_dict)
-        print(f"✅ 清单文件已更新: {csv_path} (ID: {new_id})")
+        logger.info(f"📝 记下来啦！清单已更新: {csv_path.name} (ID: {new_id})")
     except Exception as e:
-        print(f"❌ 更新 CSV 文件失败: {e}")
+        logger.error(f"😵 糟糕，更新 CSV 文件失败了: {e}")
 
 def create_metadata(args, source_file: Path, target_file: Path, file_md5: str) -> dict:
     import time
@@ -224,8 +257,18 @@ def create_metadata(args, source_file: Path, target_file: Path, file_md5: str) -
         "import_time": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()),
         "file_size": round(target_file.stat().st_size / 1024, 2) if target_file.exists() else 0,
         "md5": file_md5,
-        "file_path": str(target_file.relative_to(get_project_root())) if target_file.exists() else str(target_file)
+        "file_path": str(target_file)
     }
+    
+    if target_file.exists():
+        try:
+            # 尝试计算相对于项目根目录的路径
+            metadata["file_path"] = str(target_file.relative_to(get_project_root()))
+        except ValueError:
+            # 如果不在项目根目录下，尝试计算相对于库目录的路径
+            # 这种情况可能发生在库目录被配置在项目根目录之外
+            pass
+            
     return metadata
 
 def generate_file_md5(file_path: Path, chunk_size: int = 8192) -> str:
@@ -244,7 +287,7 @@ def generate_file_md5(file_path: Path, chunk_size: int = 8192) -> str:
                 md5_hash.update(chunk)
         return md5_hash.hexdigest()
     except Exception as e:
-        print(f"错误: 无法计算文件 MD5 {file_path}: {e}", file=sys.stderr)
+        logger.error(f"错误: 无法计算文件 MD5 {file_path}: {e}")
         return ""
 
 def clean_filename(filename: str, replace_char: str = "_") -> str:
@@ -498,7 +541,7 @@ def export_library_manifest(output_csv_path: str = None) -> str:
             data_rows.append(row)
             
         except Exception as e:
-            print(f"警告: 无法处理文件 {file_path}: {e}", file=sys.stderr)
+            logger.error(f"💦 这个文件有点难搞 {file_path.name}: {e}")
 
     try:
         output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -510,14 +553,14 @@ def export_library_manifest(output_csv_path: str = None) -> str:
             writer.writerows(data_rows)
         return str(output_path.absolute())
     except Exception as e:
-        return f"错误: 无法写入 CSV 文件: {e}"
+        return f"😵 完蛋了，无法写入 CSV 文件: {e}"
 
 def update_library_manifest(output_csv_path: str = None) -> str:
     result = export_library_manifest(output_csv_path)
-    if isinstance(result, str) and result.startswith("错误:"):
-        print(result, file=sys.stderr)
+    if isinstance(result, str) and result.startswith("错误:") or result.startswith("😵"):
+        logger.error(result)
     else:
-        print(f"📋 清单已更新: {result}")
+        logger.info(f"📋 清单刷新完毕！文件在这里: {result}")
     return result
 
 def remove_empty_directories(directory: Path = None) -> int:
@@ -627,14 +670,14 @@ def convert_images_to_book(folder_path: Path, target_format: str = 'pdf', delete
                     # 在 zip 中只存储文件名，不存储绝对路径
                     zf.write(img_path, arcname=img_path.name)
         
-        print(f"成功生成: {output_path}")
+        logger.info(f"成功生成: {output_path}")
 
         if delete_original:
             try:
                 shutil.rmtree(folder_path)
-                print(f"已删除原文件夹: {folder_path}")
+                logger.info(f"已删除原文件夹: {folder_path}")
             except Exception as e:
-                print(f"警告: 删除原文件夹失败: {e}", file=sys.stderr)
+                logger.warning(f"警告: 删除原文件夹失败: {e}")
                 
         return output_path
 
@@ -646,3 +689,44 @@ def convert_images_to_book(folder_path: Path, target_format: str = 'pdf', delete
             except OSError:
                 pass
         raise RuntimeError(f"转换失败: {e}")
+
+def delete_downloads_file():
+    """
+    清理配置文件中 "download_file_path" 指定的下载目录。
+    删除该目录下所有的文件和文件夹。
+    """
+    try:
+        config_path = get_project_root() / "config.json"
+        if not config_path.exists():
+            logger.warning("配置文件不存在，无法获取下载目录。")
+            return
+
+        config = json.loads(config_path.read_text(encoding="utf-8"))
+        download_path_str = config.get("download_file_path")
+        
+        if not download_path_str:
+            logger.warning("配置文件中未指定 download_file_path。")
+            return
+
+        download_path = Path(download_path_str)
+        if not download_path.exists():
+            logger.info(f"下载目录不存在，无需清理: {download_path}")
+            return
+
+        logger.info(f"🧹 正在清理下载目录: {download_path}")
+        
+        # 遍历删除目录下的所有内容
+        for item in download_path.iterdir():
+            try:
+                if item.is_file() or item.is_symlink():
+                    item.unlink()
+                elif item.is_dir():
+                    shutil.rmtree(item)
+            except Exception as e:
+                logger.warning(f"无法删除 {item}: {e}")
+        
+        logger.info("✨ 下载目录已清空！")
+
+    except Exception as e:
+        logger.error(f"清理下载目录时出错: {e}")
+    

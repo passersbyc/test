@@ -1,7 +1,7 @@
 {
     "project_settings": {
         "csv_path": "library_manifest.csv",
-        "library_path": "library"
+        "library_path": "D:\\Test\\library"
     },
     "filetype": {
         "txt": "小说",
@@ -70,5 +70,5 @@
         },
         "book_format": "epub"
     },
-    "download_file_path":"downloads" 
+    "download_file_path":"D:\\Test\\downloads" 
 }

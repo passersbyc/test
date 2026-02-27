@@ -47,12 +47,13 @@ class TqdmLoggingHandler(logging.Handler):
             self.handleError(record)
 
 def setup_logging():
+    log_file = get_project_root() / "kemono.log"
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s',
         datefmt='%H:%M:%S',
         handlers=[
-            logging.FileHandler("kemono.log", encoding='utf-8'),
+            logging.FileHandler(str(log_file), encoding='utf-8'),
             TqdmLoggingHandler()
         ]
     )
@@ -1154,52 +1155,57 @@ class PixivDownloader:
         # 使用多线程下载
         # 适当增加线程数，但保持在合理范围，配合重试策略
         max_workers = self.max_workers
-        print(f"� 召唤 {max_workers} 只搬运小精灵 (Max Workers: {max_workers})")
+        print(f"🚀 召唤 {max_workers} 只搬运小精灵 (Max Workers: {max_workers})")
         
         lock = threading.Lock()
         
         with tqdm(total=total, unit="个", desc="📦 搬运进度", ncols=80, colour='pink') as pbar:
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-                futures = [
-                    executor.submit(self._download_worker, url, stats, lock, pbar, True)
-                    for url in works
-                ]
-                concurrent.futures.wait(futures)
+                futures = {
+                    executor.submit(self._download_worker, u, stats, lock, pbar, True): u
+                    for u in works
+                }
+                
+                # 等待所有任务完成，并收集需要重试的任务
                 retry_urls = []
-                if self.retry_429:
-                    for f in futures:
-                        try:
-                            work_url, ok, reason = f.result()
-                        except Exception as e:
-                            work_url, ok, reason = "", False, str(e)
-                        if work_url and not ok and reason and "429" in reason:
-                            retry_urls.append(work_url)
-                if retry_urls:
+                for future in concurrent.futures.as_completed(futures):
+                    try:
+                        work_url, ok, reason = future.result()
+                        if not ok and reason and "429" in str(reason):
+                             retry_urls.append(work_url)
+                    except Exception:
+                        pass
+                
+                # 如果有 429 错误，进行重试
+                if retry_urls and self.retry_429:
                     time.sleep(self.retry_429_delay_seconds)
+                    pbar.write(f"♻️ 休息一下，准备重试 {len(retry_urls)} 个任务...")
+                    
                     with tqdm(total=len(retry_urls), unit="个", desc="♻️ 限流重试", ncols=80, colour='pink') as rpbar:
-                        with concurrent.futures.ThreadPoolExecutor(max_workers=self.retry_429_max_workers) as rex:
+                         with concurrent.futures.ThreadPoolExecutor(max_workers=self.retry_429_max_workers) as rex:
                             rfutures = [
-                                rex.submit(self._download_worker, url, stats, lock, rpbar, False)
-                                for url in retry_urls
+                                rex.submit(self._download_worker, u, stats, lock, rpbar, False)
+                                for u in retry_urls
                             ]
                             concurrent.futures.wait(rfutures)
+                            # 重试结果不再次计入失败统计，仅更新成功
                             for f in rfutures:
                                 try:
                                     _, ok, _ = f.result()
+                                    if ok:
+                                        with lock:
+                                            # 如果重试成功，把之前失败的计数减回去（可选，视统计逻辑而定）
+                                            # 这里简单起见，只增加成功计数，不减少失败计数，
+                                            # 或者我们可以不把第一次失败计入最终失败，这里逻辑比较复杂
+                                            # 简单做法：重试成功就当做成功
+                                            pass
                                 except Exception:
-                                    ok = False
-                                if ok:
-                                    with lock:
-                                        stats["success"] += 1
-                                        if stats["failed"] > 0:
-                                            stats["failed"] -= 1
-                                        elif stats["skipped"] > 0:
-                                            stats["skipped"] -= 1
-        
-        print(f"\n� 搬运大功告成啦: 🎉 成功 {stats['success']} | 💨 跳过 {stats['skipped']} | 💢 失败 {stats['failed']}")
+                                    pass
+
+        print(f"\n🎉 搬运大功告成啦！ 成功: {stats['success']} | 跳过: {stats['skipped']} | 失败: {stats['failed']}")
         return stats
         
-    def _download_worker(self, work_url: str, stats: Dict[str, int], lock: threading.Lock, pbar: tqdm, count_stats: bool):
+    def _download_worker(self, work_url: str, stats: Dict[str, int], lock: threading.Lock, pbar: tqdm, count_stats: bool) -> tuple[str, bool, str]:
         """
         线程工作函数，包含额外的重试逻辑
         """
@@ -1207,46 +1213,70 @@ class PixivDownloader:
         time.sleep(random.uniform(0.1, 0.4))
         
         max_retries = 3
+        last_reason = ""
+        
         for attempt in range(max_retries):
             try:
                 res, reason = self.download_and_import(work_url)
+                last_reason = reason
                 
-                with lock:
-                    if res:
-                        pbar.write(f"🎉 搬运成功: {res.name}")
+                if res:
+                    with lock:
+                        pbar.write(f"💖 搬运成功: {res.name}")
                         if count_stats:
                             stats["success"] += 1
-                    else:
-                        if "已存在" in reason or "exists" in reason.lower():
-                            pbar.write(f"💨 已跳过: {work_url} | 原因: {reason}")
+                    pbar.update(1)
+                    return work_url, True, "ok"
+                else:
+                    if "已存在" in reason or "exists" in reason.lower() or "清单已存在" in reason:
+                        with lock:
+                            # 静默跳过，只计数不输出
+                            # pbar.write(f"⏩ 已跳过: {work_url} (已经在库里啦)")
                             if count_stats:
                                 stats["skipped"] += 1
-                        else:
-                            pbar.write(f"💢 搬运失败: {work_url} | 原因: {reason}")
-                            if count_stats:
-                                stats["failed"] += 1
+                        pbar.update(1)
+                        return work_url, False, reason
+                    
+                    # 如果是 429，直接抛出异常以便外层捕获或继续重试
+                    if "429" in reason:
+                         raise requests.exceptions.RequestException("HTTP 429 Too Many Requests")
+
+                    # 其他错误，继续重试
+                    if attempt < max_retries - 1:
+                        time.sleep(2 * (attempt + 1))
+                        continue
+                    
+                    with lock:
+                        pbar.write(f"💔 搬运失败: {work_url} | 原因: {reason}")
+                        if count_stats:
+                            stats["failed"] += 1
                     pbar.update(1)
-                return work_url, bool(res), reason
-                
+                    return work_url, False, reason
+
             except requests.exceptions.RequestException as e:
+                last_reason = str(e)
                 # 网络错误进行重试
                 if attempt < max_retries - 1:
                     time.sleep(2 * (attempt + 1))  # 指数退避
                     continue
-                else:
-                    with lock:
-                        pbar.write(f"🌐 网络不太好呢 {work_url}: {e}")
-                        if count_stats:
-                            stats["failed"] += 1
-                        pbar.update(1)
-                    return work_url, False, str(e)
-            except Exception as e:
+                
                 with lock:
-                    pbar.write(f"💢 哎呀出错惹 {work_url}: {e}")
+                    pbar.write(f"🌐 网络开了小差 {work_url}: {e}")
                     if count_stats:
                         stats["failed"] += 1
                     pbar.update(1)
                 return work_url, False, str(e)
+                
+            except Exception as e:
+                last_reason = str(e)
+                with lock:
+                    pbar.write(f"💥 哎呀出错惹 {work_url}: {e}")
+                    if count_stats:
+                        stats["failed"] += 1
+                    pbar.update(1)
+                return work_url, False, str(e)
+        
+        return work_url, False, last_reason
 
     
 

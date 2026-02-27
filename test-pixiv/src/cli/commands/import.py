@@ -3,7 +3,7 @@ import shutil
 import csv
 from pathlib import Path
 from src.cli.core import BaseCommand
-from toolboxs import generate_file_md5, build_import_target, check_duplicate_by_md5
+from toolboxs import generate_file_md5, build_import_target, check_duplicate_by_md5, logger
 
 class ImportCommand(BaseCommand):
     def __init__(self) -> None:
@@ -71,26 +71,26 @@ class ImportCommand(BaseCommand):
         :return: 整数退出码，0 表示成功，非 0 表示失败。
         """
         # 1. 计算文件 MD5 并进行查重
-        print(f"正在扫描文件: {args.file.name}...")
+        logger.info(f"🕵️ 正在鉴定文件: {args.file.name}...")
         file_md5 = generate_file_md5(args.file)
         is_dup, dup_name = check_duplicate_by_md5(file_md5)
         
         if is_dup:
-            print(f"⚠️  文件已存在 (MD5 命中): {args.file.name}")
-            print(f"   库中已有同内容文件: {dup_name}")
-            print("   导入已取消。")
+            logger.warning(f"👯‍♀️ 哎呀！发现双胞胎 (MD5 命中): {args.file.name}")
+            logger.warning(f"   库里已经有它啦: {dup_name}")
+            logger.warning("   为了节省空间，本次导入取消咯。")
             return 0  # 正常退出，但未执行导入
             
         # 2. 构建目标文件路径
         try:
             target_path = build_import_target(args.file, args.author or "", args.series or "")
         except ValueError:
-            print(f"无法识别文件类型: {args.file}")
+            logger.error(f"🤯 无法识别这个文件的类型: {args.file}")
             return 1
         
         try:
             shutil.copy2(args.file, target_path)
-            print(f"✅ 文件已导入: {target_path}")
+            logger.info(f"✅ 成功收录到书库: {target_path}")
             
             # 生成元数据
             metadata = self._create_metadata(args, args.file, target_path, file_md5)
@@ -98,7 +98,7 @@ class ImportCommand(BaseCommand):
                 # 补充到 CSV 清单
                 self._supplement_csv(metadata)
         except Exception as e:
-            print(f"❌ 导入失败: {e}")
+            logger.error(f"💥 导入过程发生意外: {e}")
             return 1
             
         return 0

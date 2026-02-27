@@ -1,10 +1,9 @@
 import argparse
 import csv
-from pathlib import Path
 from src.cli.core import BaseCommand
 from src.cli.downplugin.pixiv import PixivDownloader
 from src.cli.downplugin.kemono import Kemono
-from toolboxs import get_project_root
+from toolboxs import get_project_root, logger, delete_downloads_file
 
 class PullCommand(BaseCommand):
     def __init__(self) -> None:
@@ -38,7 +37,7 @@ class PullCommand(BaseCommand):
         root = get_project_root()
         csv_path = root / "follows.csv"
         if not csv_path.exists():
-            print(f"错误：{csv_path} 不存在。请先关注用户。")
+            logger.info(f"📭 哎呀，关注列表 {csv_path} 不见啦。请先关注一些作者吧！")       
             return
 
         urls = []
@@ -48,27 +47,46 @@ class PullCommand(BaseCommand):
                 for row in reader:
                     u = row.get("URL")
                     if u:
-                        urls.append(u)
+                        urls.append(u.strip())
         except Exception as e:
-            print(f"读取关注列表失败: {e}")
+            logger.error(f"😵 读取关注列表时出错了: {e}")
             return
 
-        if not urls:
-            print("关注列表为空。")
+        unique_urls = [u for u in dict.fromkeys(urls) if u]
+        if not unique_urls:
+            logger.info("📭 关注列表是空的呢。")
             return
 
-        print(f"找到 {len(urls)} 位关注作者，开始拉取最新作品...")
+        pixiv_downloader = PixivDownloader()
+        kemono_downloader = Kemono()
+        logger.info(f"📋 发现 {len(unique_urls)} 位特别关注，正在查看他们有没有新作品...")
         
-        for idx, url in enumerate(urls, 1):
-            print(f"\n[{idx}/{len(urls)}] 正在处理: {url}")
-            if "pixiv.net" in url:
-                downloader = PixivDownloader()
-                downloader.process_url(url)
-            elif "kemono" in url:
-                downloader = Kemono()
-                downloader.process_url(url)
-            else:
-                print(f"未知链接类型: {url}")
-                return
+        processed = 0
+        failed = 0
+        unknown = 0
         
-        print("\n所有关注作者处理完毕！")
+        # 预先初始化下载器实例
+        pixiv_downloader = PixivDownloader()
+        kemono_downloader = Kemono()
+        
+        try:
+            for idx, url in enumerate(unique_urls, 1):
+                logger.info(f"[{idx}/{len(unique_urls)}] 正在拜访: {url}")
+                try:
+                    lower_url = url.lower()
+                    if "pixiv.net" in lower_url:
+                        pixiv_downloader.process_url(url)
+                        processed += 1
+                    elif "kemono" in lower_url:
+                        kemono_downloader.process_url(url)
+                        processed += 1
+                    else:
+                        logger.warning(f"❓ 这个链接好像不认识呢: {url}")
+                        unknown += 1
+                except Exception as e:
+                    logger.error(f"💥 处理失败: {url} - {e}")
+                    failed += 1
+                        
+        finally:
+            delete_downloads_file()
+            logger.info(f"✨ 所有关注作者都拜访完啦！成功 {processed} | 失败 {failed} | 未知 {unknown}")

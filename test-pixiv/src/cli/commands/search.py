@@ -3,7 +3,7 @@ import argparse
 import re
 import unicodedata
 from src.cli.core import BaseCommand
-from toolboxs import update_library_manifest
+from toolboxs import update_library_manifest, logger
 
 class SearchCommand(BaseCommand):
     def __init__(self) -> None:
@@ -28,7 +28,7 @@ class SearchCommand(BaseCommand):
             with open(self.csv_path, 'r', encoding='utf-8-sig') as f:
                 return list(csv.DictReader(f))
         except Exception as e:
-            print(f"❌ 读取清单失败: {e}")
+            logger.error(f"❌ 读取清单失败: {e}")
             return []
 
     def _build_matcher(self, pattern: str, use_regex: bool):
@@ -122,17 +122,17 @@ class SearchCommand(BaseCommand):
         执行搜索操作。
         """
         if args.refresh:
-            print("🧹 正在刷新清单，请稍等一下下～")
+            logger.info("🧹 正在刷新清单，请稍等一下下～")
             update_library_manifest()
 
         if not self.csv_path.exists():
             update_library_manifest()
             if not self.csv_path.exists():
-                print(f"❌ 错误：CSV 路径不存在: {self.csv_path}")
+                logger.error(f"😵 找不到清单文件呢: {self.csv_path}")
                 return 1
             
         if not any([args.query, args.author, args.series, args.type, args.tag, args.source, args.keyword]):
-            print("❌ 需要一点关键词线索喔～请输入搜索关键词或筛选条件。")
+            logger.info("🕵️ 请给我一点线索吧～（请输入搜索关键词）")
             return 1
 
         try:
@@ -144,7 +144,7 @@ class SearchCommand(BaseCommand):
             matcher_source = self._build_matcher(args.source, args.regex)
             matcher_keyword = self._build_matcher(args.keyword, args.regex)
         except ValueError as e:
-            print(f"❌ {e}")
+            logger.error(f"😵 搜索条件好像有点问题: {e}")
             return 1
 
         results = []
@@ -178,17 +178,17 @@ class SearchCommand(BaseCommand):
             
         # 输出结果
         if not results:
-            print("📭 呜呜，没有找到匹配结果～")
+            logger.info("🍃 呜呜，什么都没有找到呢～")
             return 0
             
         widths = [6, 40, 18, 10, 12]
         line_len = sum(widths) + (len(widths) - 1)
         line = "─" * line_len
-        print(f"✨ 找到 {len(results)} 个小宝藏：")
-        print(f"╭{line}╮")
+        logger.info(f"✨ 找到 {len(results)} 个小宝藏：")
+        logger.info(f"╭{line}╮")
         header = self._format_row(["ID", "文件名", "作者", "分类", "大小(KB)"], widths)
-        print(f"│{header}│")
-        print(f"├{line}┤")
+        logger.info(f"│{header}│")
+        logger.info(f"├{line}┤")
         
         id_list = []
         for row in results:
@@ -206,11 +206,11 @@ class SearchCommand(BaseCommand):
             file_type = self._truncate(file_type, widths[3])
             
             row_text = self._format_row([str(file_id), name, author, file_type, str(size)], widths)
-            print(f"│{row_text}│")
+            logger.info(f"│{row_text}│")
         
-        print(f"╰{line}╯")
+        logger.info(f"╰{line}╯")
         if id_list:
-            print(f"🧾 可用 ID：{', '.join(id_list)}")
-        print("🐾 搜索完成，贴贴～")
+            logger.info(f"🧾 顺便把 ID 给你抄下来啦：{', '.join(id_list)}")
+        logger.info("🐾 搜索任务完成，随时待命！")
             
         return 0

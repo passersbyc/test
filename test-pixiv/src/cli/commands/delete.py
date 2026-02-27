@@ -4,7 +4,7 @@ import json
 import shutil
 import argparse
 import csv
-from toolboxs import get_project_root, remove_empty_directories, update_library_manifest
+from toolboxs import get_project_root, remove_empty_directories, update_library_manifest, logger
 
 class DeleteCommand(BaseCommand):
     """
@@ -97,16 +97,16 @@ class DeleteCommand(BaseCommand):
         """
         author_path = self.library_path /"小说"/ query
         if author_path.exists():
-            if self.args.force or self._confirm(f"❓ 确定要删除作者 {query} 及其所有作品吗?"):
+            if self.args.force or self._confirm(f"🔥 确定要告别作者 【{query}】 及其所有作品吗?"):
                 try:
                     shutil.rmtree(author_path)
-                    print(f"✅ 已删除作者: {query}")
+                    print(f"🗑️  已删除作者: {query}")
                     # 这里可能需要更新 CSV，但全量更新比较慢，建议提示用户手动 scan
-                    print("💡 提示: 建议运行 'scan' 命令更新书库清单。")
+                    print("💡 小提示: 建议运行 'scan' 命令来刷新书库清单哦。")
                 except Exception as e:
-                    print(f"❌ 删除失败: {e}")
+                    print(f"💦 删除失败惹: {e}")
         else:
-            print(f"✨ 作者不存在: {query}")
+            logger.warning(f"🍃 作者不存在: {query}")
 
     def _delete_type(self, query: str) -> None:
         """
@@ -114,15 +114,15 @@ class DeleteCommand(BaseCommand):
         """
         type_path = self.library_path / query
         if type_path.exists():
-            if self.args.force or self._confirm(f"❓ 确定要删除类型 {query} 下的所有文件吗?"):
+            if self.args.force or self._confirm(f"🔥 确定要清空类型 【{query}】 下的所有文件吗?"):
                 try:
                     shutil.rmtree(type_path)
-                    print(f"✅ 已删除类型: {query}")
-                    print("💡 提示: 建议运行 'scan' 命令更新书库清单。")
+                    logger.info(f"🗑️  已删除类型: {query}")
+                    logger.info("💡 小提示: 建议运行 'scan' 命令来刷新书库清单哦。")
                 except Exception as e:
-                    print(f"❌ 删除失败: {e}")
+                    logger.error(f"💦 删除失败惹: {e}")
         else:
-            print(f"✨ 类型不存在: {query}")
+            logger.warning(f"🍃 类型不存在: {query}")
     
     def _delete_series(self, query: str) -> None:
         """
@@ -141,13 +141,13 @@ class DeleteCommand(BaseCommand):
         
         series_path = self.library_path / query
         if series_path.exists():
-            if self.args.force or self._confirm(f"❓ 确定要删除系列 {query} 及其所有文件吗?"):
+            if self.args.force or self._confirm(f"🔥 确定要删除系列 【{query}】 及其所有文件吗?"):
                 try:
                     shutil.rmtree(series_path)
-                    print(f"✅ 已删除系列: {query}")
-                    print("💡 提示: 建议运行 'scan' 命令更新书库清单。")
+                    logger.info(f"🗑️  已删除系列: {query}")
+                    logger.info("💡 小提示: 建议运行 'scan' 命令来刷新书库清单哦。")
                 except Exception as e:
-                    print(f"❌ 删除失败: {e}")
+                    logger.error(f"💦 删除失败惹: {e}")
         else:
             # 尝试在所有作者目录下查找该系列
             found = False
@@ -155,19 +155,19 @@ class DeleteCommand(BaseCommand):
                 if author_dir.is_dir():
                     possible_series = author_dir / query
                     if possible_series.exists() and possible_series.is_dir():
-                        if self.args.force or self._confirm(f"❓ 找到系列 '{query}' 位于 '{author_dir.name}' 下。确定要删除吗?"):
+                        if self.args.force or self._confirm(f"🔎 找到系列 '{query}' 藏在 '{author_dir.name}' 下。确定要删除吗?"):
                             try:
                                 shutil.rmtree(possible_series)
-                                print(f"✅ 已删除系列: {possible_series}")
+                                logger.info(f"🗑️  已删除系列: {possible_series.name}")
                                 found = True
                             except Exception as e:
-                                print(f"❌ 删除失败: {e}")
+                                logger.error(f"💦 删除失败惹: {e}")
                         else:
                             found = True # Found but user cancelled
                         break # Only delete first match or logic gets complex
             
             if not found:
-                print(f"✨ 系列不存在: {query}")
+                logger.warning(f"🍃 系列不存在: {query}")
     
     def _delete_file(self, ids: list[str]) -> None:
         """
@@ -180,7 +180,7 @@ class DeleteCommand(BaseCommand):
                 reader = csv.DictReader(f)
                 rows = list(reader)
         except Exception:
-            print("❌ 读取清单失败，请检查 CSV 文件。")
+            logger.error("😖 读取清单失败，请检查 CSV 文件是否完好。")
             return
 
         # 2. 查找要删除的文件
@@ -196,7 +196,7 @@ class DeleteCommand(BaseCommand):
                 remaining_rows.append(row)
 
         if not files_to_delete:
-            print("📭 未找到对应的 ID。")
+            print("📭 呜呜，没有找到对应的 ID 呢。")
             return
 
         # 3. 删除文件并确认
@@ -207,12 +207,12 @@ class DeleteCommand(BaseCommand):
         final_remaining_rows = list(remaining_rows)
 
         # 打印预览
-        print(f"🔍 找到 {len(files_to_delete)} 个文件待删除:")
+        print(f"🔍 找到 {len(files_to_delete)} 个目标文件:")
         for row in files_to_delete:
              print(f"  - [ID: {row.get('ID')}] {row.get('文件名')} ({row.get('文件大小(KB)')} KB)")
 
-        if not self.args.force and not self._confirm("❓ 确定要删除以上所有文件吗?"):
-            print("🚫 已取消删除。")
+        if not self.args.force and not self._confirm("🔥 确定要永久删除以上所有文件吗?"):
+            print("�️ 操作已取消，文件安全啦。")
             return
 
         for row in files_to_delete:
@@ -223,16 +223,16 @@ class DeleteCommand(BaseCommand):
             full_path = root / file_path_str
             
             if not full_path.exists():
-                print(f"⚠️ 文件不存在 (仅从清单移除): {full_path.name}")
+                print(f"👻 文件好像已经不在了 (仅从清单移除): {full_path.name}")
                 deleted_count += 1
                 continue
 
             try:
                 full_path.unlink()
-                print(f"✅ 已删除文件: {full_path.name}")
+                print(f"🗑️  已删除文件: {full_path.name}")
                 deleted_count += 1
             except Exception as e:
-                print(f"❌ 删除失败: {full_path.name} - {e}")
+                print(f"💦 删除失败: {full_path.name} - {e}")
                 # 删除失败则保留在清单中
                 final_remaining_rows.append(row)
 
@@ -251,6 +251,6 @@ class DeleteCommand(BaseCommand):
                     # 为了保持 ID 顺序，可能需要重排序？不，保持原序即可，或者按 ID 排序
                     # 这里直接写入剩余行
                     writer.writerows(final_remaining_rows)
-                print("📋 清单已更新。")
+                print("📋 清单已刷新。")
             except Exception as e:
-                print(f"❌ 更新清单失败: {e}")
+                print(f"😖 更新清单失败: {e}")

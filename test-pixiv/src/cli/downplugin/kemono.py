@@ -33,12 +33,13 @@ class TqdmLoggingHandler(logging.Handler):
             self.handleError(record)
 
 def setup_logging():
+    log_file = get_project_root() / "kemono.log"
     logging.basicConfig(
         level=logging.INFO,
         format='%(asctime)s - %(levelname)s - %(message)s',
         datefmt='%H:%M:%S',
         handlers=[
-            logging.FileHandler("kemono.log", encoding='utf-8'),
+            logging.FileHandler(str(log_file), encoding='utf-8'),
             TqdmLoggingHandler()
         ]
     )
@@ -227,6 +228,12 @@ class Kemono:
                 # 忽略 400 Bad Request，通常是因为 offset 超出范围
                 if e.code == 400:
                     break
+                
+                # 处理 429 Too Many Requests
+                if e.code == 429:
+                    logger.warning(f"HTTP 429 Too Many Requests. Waiting 30s before retry... (Offset {offset})")
+                    time.sleep(30)
+                    continue
                     
                 body = ""
                 try:
@@ -296,22 +303,30 @@ class Kemono:
         headers = dict(self.headers)
         headers["Accept"] = "text/css" # 保持一致的绕过策略
 
-        try:
-            req = urllib.request.Request(api_url, headers=headers)
-            with urllib.request.urlopen(req, timeout=self.config.timeout) as resp:
-                raw_data = resp.read()
-                if resp.info().get('Content-Encoding') == 'gzip' or raw_data.startswith(b'\x1f\x8b'):
-                    data = gzip.decompress(raw_data).decode("utf-8", "ignore")
-                else:
-                    data = raw_data.decode("utf-8", "ignore")
-                
-                profile = json.loads(data)
-                name = profile.get("name")
-                # logger.info(f"获取到作者名称: {name}")
-                return name
-        except Exception as e:
-            logger.error(f"获取作者名称失败: {e}")
-            return None
+        while True:
+            try:
+                req = urllib.request.Request(api_url, headers=headers)
+                with urllib.request.urlopen(req, timeout=self.config.timeout) as resp:
+                    raw_data = resp.read()
+                    if resp.info().get('Content-Encoding') == 'gzip' or raw_data.startswith(b'\x1f\x8b'):
+                        data = gzip.decompress(raw_data).decode("utf-8", "ignore")
+                    else:
+                        data = raw_data.decode("utf-8", "ignore")
+                    
+                    profile = json.loads(data)
+                    name = profile.get("name")
+                    # logger.info(f"获取到作者名称: {name}")
+                    return name
+            except urllib.error.HTTPError as e:
+                if e.code == 429:
+                    logger.warning(f"HTTP 429 Too Many Requests. Waiting 30s before retry... (Profile)")
+                    time.sleep(30)
+                    continue
+                logger.error(f"获取作者名称失败: HTTP {e.code}")
+                return None
+            except Exception as e:
+                logger.error(f"获取作者名称失败: {e}")
+                return None
 
     def get_author_info(self, url: str) -> Optional[tuple[str, int]]:
         """
@@ -351,19 +366,29 @@ class Kemono:
         headers = dict(self.headers)
         headers["Accept"] = "text/css"
         
-        try:
-            req = urllib.request.Request(api_url, headers=headers)
-            with urllib.request.urlopen(req, timeout=self.config.timeout) as resp:
-                raw_data = resp.read()
-                if resp.info().get('Content-Encoding') == 'gzip' or raw_data.startswith(b'\x1f\x8b'):
-                    data = gzip.decompress(raw_data).decode("utf-8", "ignore")
-                else:
-                    data = raw_data.decode("utf-8", "ignore")
-                
-                post_data = json.loads(data)
-        except Exception as e:
-            logger.error(f"获取帖子详情失败 - {e}")
-            return
+        post_data = None
+        while True:
+            try:
+                req = urllib.request.Request(api_url, headers=headers)
+                with urllib.request.urlopen(req, timeout=self.config.timeout) as resp:
+                    raw_data = resp.read()
+                    if resp.info().get('Content-Encoding') == 'gzip' or raw_data.startswith(b'\x1f\x8b'):
+                        data = gzip.decompress(raw_data).decode("utf-8", "ignore")
+                    else:
+                        data = raw_data.decode("utf-8", "ignore")
+                    
+                    post_data = json.loads(data)
+                    break
+            except urllib.error.HTTPError as e:
+                if e.code == 429:
+                    logger.warning(f"HTTP 429 Too Many Requests. Waiting 30s before retry... (Post {post_id})")
+                    time.sleep(30)
+                    continue
+                logger.error(f"获取帖子详情失败 - HTTP {e.code}")
+                return
+            except Exception as e:
+                logger.error(f"获取帖子详情失败 - {e}")
+                return
 
         if if_download_cover is None:
             if_download_cover = self.config.if_download_cover
@@ -986,71 +1011,115 @@ class KemonoDownloader:
     def process_url(self, url: str) -> dict[str, int]:
         stats = {"success": 0, "failed": 0, "skipped": 0}
         print(f"✨ 正在解析魔法链接: {url}")
+        
         if "/post/" in url:
             print("🎯 发现了一个作品链接，准备开始搬运...")
             res, reason = self.download_and_import(url)
             if res:
                 stats["success"] += 1
-                print(f"🎉 搬运成功: {Path(res[0]).name}")
+                print(f"💖 搬运成功: {Path(res[0]).name}")
             elif reason == "清单已存在来源":
                 stats["skipped"] += 1
-                print(f"💨 已跳过: {url} | 原因: {reason}")
+                print(f"⏩ 已跳过: {url} | 原因: {reason}")
             else:
                 stats["failed"] += 1
-                print(f"💢 搬运失败: {url} | 原因: {reason}")
+                print(f"� 搬运失败: {url} | 原因: {reason}")
             print(f"\n🎉 搬运大功告成啦: 🎉 成功 {stats['success']} | 💨 跳过 {stats['skipped']} | 💢 失败 {stats['failed']}")
             return stats
+            
         if "/user/" in url:
             author = self._get_author_name(url)
             print(f"🎨 发现了一位创作者 (作者: {author})，正在翻阅作品集...")
+            
             download_path = self.kemono._resolve_download_path(self.config.default_download_path) / clean_filename(author)
             download_path.mkdir(parents=True, exist_ok=True)
+            
             posts = self.kemono.get_author_artline(url)
             total = len(posts)
             if total == 0:
                 print("🍃 呜呜，什么都没有找到呢...")
                 return stats
+                
             lock = threading.Lock()
             print(f"🌸 哇！一共找到了 {total} 个宝藏，准备开始搬运啦~")
-            print(f"✨ 召唤 {self.max_workers} 只搬运小精灵 (Max Workers: {self.max_workers})")
+            print(f"🚀 召唤 {self.max_workers} 只搬运小精灵 (Max Workers: {self.max_workers})")
+            
             with tqdm(total=total, unit="个", desc="📦 搬运进度", ncols=80, colour='pink') as pbar:
                 with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
                     futures = []
                     for p in posts:
                         futures.append(executor.submit(self._download_worker, p, author, download_path, stats, lock, pbar))
-                    for f in futures:
-                        f.result()
+                    
+                    # 收集结果
+                    for f in as_completed(futures):
+                        try:
+                            f.result()
+                        except Exception as e:
+                            logger.error(f"任务执行异常: {e}")
+                            
             print(f"\n🎉 搬运大功告成啦: 🎉 成功 {stats['success']} | 💨 跳过 {stats['skipped']} | 💢 失败 {stats['failed']}")
             return stats
+            
         print(f"❓ 这是什么奇怪的链接呀: {url}")
         return stats
 
     def _download_worker(self, post_url: str, author: str, download_path: Path, stats: dict, lock: threading.Lock, pbar: tqdm) -> None:
         try:
+            # 1. 检查清单中是否已存在
             if self._is_source_in_manifest(post_url):
                 with lock:
-                    pbar.write(f"💨 已跳过: {post_url} | 原因: 清单已存在来源")
+                    # pbar.write(f"⏩ 已跳过: {post_url} (已经在库里啦)")
                     stats["skipped"] += 1
                 return
-            files = self._download_post(post_url, download_path)
+
+            # 2. 检查本地文件是否已下载 (即使清单中没有)
+            # Kemono 的下载通常以帖子 ID 命名文件夹或文件名，这里尝试推断文件名
+            # 但由于文件名可能包含非法字符被重命名，或者下载后被移动，这里只能做简单检查
+            # 更好的方式是依靠清单，所以这里主要依靠 _is_source_in_manifest
+            
+            # 添加简单的重试逻辑
+            max_retries = 3
+            files = []
+            last_error = ""
+            
+            for attempt in range(max_retries):
+                try:
+                    files = self._download_post(post_url, download_path)
+                    if files:
+                        break
+                    # 如果返回空列表，可能是网络问题或者真的没文件
+                    # 这里的 _download_post 内部其实已经有一些重试，但外层再加一层保险
+                    if attempt < max_retries - 1:
+                        time.sleep(2 * (attempt + 1))
+                except Exception as e:
+                    last_error = str(e)
+                    if attempt < max_retries - 1:
+                        time.sleep(2 * (attempt + 1))
+            
             if not files:
                 with lock:
-                    pbar.write(f"💢 搬运失败: {post_url} | 原因: {self._last_error or '下载失败'}")
+                    pbar.write(f"� 搬运失败: {post_url} | 原因: {self._last_error or last_error or '下载失败'}")
                     stats["failed"] += 1
                 return
+                
             ok = False
             for f in files:
                 res, _ = self.import_download(Path(f), post_url, author=author)
                 if res:
                     ok = True
+            
             with lock:
                 if ok:
-                    pbar.write(f"🎉 搬运成功: {Path(files[0]).name}")
+                    pbar.write(f"💖 搬运成功: {Path(files[0]).name}")
                     stats["success"] += 1
                     self.existing_sources.add(post_url.strip())
                 else:
-                    pbar.write(f"💢 搬运失败: {post_url} | 原因: {self._last_error or '导入失败'}")
+                    pbar.write(f"� 搬运失败: {post_url} | 原因: {self._last_error or '导入失败'}")
                     stats["failed"] += 1
+        except Exception as e:
+            with lock:
+                pbar.write(f"💥 哎呀出错惹 {post_url}: {e}")
+                stats["failed"] += 1
         finally:
             pbar.update(1)
 

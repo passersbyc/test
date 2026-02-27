@@ -6,6 +6,7 @@ src/cli/commands/greet.py
 import argparse
 from src.cli.core import BaseCommand
 from pathlib import Path
+from toolboxs import logger
 
 class GreetCommand(BaseCommand):
     """
@@ -102,29 +103,23 @@ class GreetCommand(BaseCommand):
     def execute(self, args: argparse.Namespace) -> int:
         """
         执行打招呼逻辑。
-        
-        Args:
-            args: 包含解析后的参数。
-            
-        Returns:
-            0 表示执行成功。
         """
         # 打印元数据信息
-        print(f"处理文件: {args.file_path.absolute()}")
+        logger.info(f"📄 正在查阅文件: {args.file_path.absolute().name}")
         
         if args.author:
-            print(f"作者: {args.author}")
+            logger.info(f"👤 作者大大: {args.author}")
         if args.series:
-            print(f"系列: {args.series}")
+            logger.info(f"📚 所属系列: {args.series}")
         if args.tags:
-            print(f"标签: {args.tags}")
+            logger.info(f"🏷️ 贴有标签: {', '.join(args.tags)}")
         if args.source_url:
-            print(f"来源: {args.source_url}")
+            logger.info(f"🔗 来源传送门: {args.source_url}")
 
         # 原有的打招呼逻辑
-        message = f"Hello, {args.name}!"
+        message = f"👋 Hello, {args.name}!"
         if args.loud:
-            message = message.upper()
-        print(message)
+            message = f"📢 {message.upper()}!!!"
+        logger.info(message)
             
         return 0

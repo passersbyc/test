@@ -9,3 +9,455 @@
 10:11:34 - ERROR - 加载配置失败: the JSON object must be str, bytes or bytearray, not MagicMock
 10:11:34 - ERROR - 加载现有记录失败: Cannot open console output buffer for reading
 10:11:34 - ERROR - 加载配置失败: the JSON object must be str, bytes or bytearray, not MagicMock
+13:36:49 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Profile)
+13:40:46 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+13:46:29 - ERROR - 下载失败 滲透24.pdf: [WinError 32] 另一个程序正在使用此文件，进程无法访问。: 'D:\\Test\\downloads\\Lite_tsf\\滲透24.pdf.tmp' -> 'D:\\Test\\downloads\\Lite_tsf\\滲透24.pdf'
+13:46:29 - WARNING - 切换到备用图片服务器: https://n1.kemono.cr
+13:47:21 - ERROR - 下载失败 滲透24.pdf: [WinError 32] 另一个程序正在使用此文件，进程无法访问。: 'D:\\Test\\downloads\\Lite_tsf\\滲透24.pdf.tmp' -> 'D:\\Test\\downloads\\Lite_tsf\\滲透24.pdf'
+13:47:21 - WARNING - 切换到备用图片服务器: https://n2.kemono.cr
+13:53:23 - ERROR - 下载失败 滲透24.pdf: [WinError 32] 另一个程序正在使用此文件，进程无法访问。: 'D:\\Test\\downloads\\Lite_tsf\\滲透24.pdf.tmp' -> 'D:\\Test\\downloads\\Lite_tsf\\滲透24.pdf'
+13:53:23 - WARNING - 切换到备用图片服务器: https://n1.kemono.cr
+13:54:56 - ERROR - 下载失败 滲透24.pdf: [WinError 32] 另一个程序正在使用此文件，进程无法访问。: 'D:\\Test\\downloads\\Lite_tsf\\滲透24.pdf.tmp' -> 'D:\\Test\\downloads\\Lite_tsf\\滲透24.pdf'
+13:54:56 - WARNING - 切换到备用图片服务器: https://n4.kemono.cr
+13:57:52 - ERROR - 下载失败 滲透24.pdf: [WinError 32] 另一个程序正在使用此文件，进程无法访问。: 'D:\\Test\\downloads\\Lite_tsf\\滲透24.pdf.tmp' -> 'D:\\Test\\downloads\\Lite_tsf\\滲透24.pdf'
+14:06:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 1390826)
+07:08:12 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3431)
+07:09:55 - INFO - 📦 收到 1 个传送请求，准备出发！
+07:09:55 - INFO - --------------------------------------------------
+07:09:55 - INFO - 🔗 正在解析传送门: https://kemono.cr/patreon/user/111877200/post/128942667
+07:10:10 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3432)
+07:10:10 - INFO - 
+✨ 所有任务都处理完啦！
+07:16:28 - INFO - 🔍 正在解析神秘链接: https://kemono.cr/patreon/user/111877200
+07:16:29 - INFO - 💖 成功捕获一只作者: FTL (作品数: 51)
+07:16:29 - INFO - 📝 关注小本本已更新: follows.csv
+07:16:48 - INFO - 📋 发现 6 位特别关注，正在查看他们有没有新作品...
+07:16:48 - INFO - 
+[1/6] 正在拜访: https://www.pixiv.net/users/14352536
+07:16:51 - INFO - 
+[2/6] 正在拜访: https://www.pixiv.net/users/43207399
+07:18:18 - INFO - 成功生成: c:\Users\Administrator\Desktop\test-pixiv\test-pixiv\downloads\“未花”和渚的小秘密__141653851.pdf
+07:18:18 - INFO - 已删除原文件夹: c:\Users\Administrator\Desktop\test-pixiv\test-pixiv\downloads\“未花”和渚的小秘密__141653851
+07:18:18 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3433)
+07:18:18 - INFO - 
+[3/6] 正在拜访: https://kemono.cr/fanbox/user/5848128
+07:18:23 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 1026189)
+07:18:23 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 1023264)
+07:18:23 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 1023250)
+07:18:53 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 1023264)
+07:18:53 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 1026189)
+07:18:53 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 1023250)
+07:19:24 - INFO - 
+[4/6] 正在拜访: https://www.pixiv.net/users/97592734
+07:19:31 - INFO - 
+[5/6] 正在拜访: https://kemono.cr/patreon/user/94927303
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84453047)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84452734)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84452602)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84452639)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84452695)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84452558)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84452498)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84452326)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84452289)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84452107)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84452141)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84451894)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84451952)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84452000)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84451789)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84452187)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84451717)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84451827)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84452043)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84451602)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84451508)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84451675)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84451640)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84451554)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84451107)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84450833)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84451390)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84451236)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84450896)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84451288)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84451421)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84450719)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84450676)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84450595)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84449855)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84449287)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84449399)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84449369)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84449167)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84449199)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84449265)
+07:19:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84449037)
+07:19:35 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84448998)
+07:19:35 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84448879)
+07:19:35 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84448949)
+07:19:35 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84448853)
+07:19:35 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84448798)
+07:19:35 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84448732)
+07:19:35 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84448066)
+07:25:36 - INFO - 
+[6/6] 正在拜访: https://kemono.cr/patreon/user/111877200
+07:34:05 - INFO - ✨ 所有关注作者都拜访完啦！
+07:39:41 - INFO - 📦 收到 1 个传送请求，准备出发！
+07:39:41 - INFO - --------------------------------------------------
+07:39:41 - INFO - 🔗 正在解析传送门: https://kemono.cr/patreon/user/111877200/post/130191489
+07:39:41 - INFO - ✨ 所有任务都处理完啦！
+07:41:20 - INFO - 📦 收到 1 个传送请求，准备出发！
+07:41:20 - INFO - --------------------------------------------------
+07:41:20 - INFO - 🔗 正在解析传送门: https://kemono.cr/patreon/user/111877200/post/122783228
+07:41:21 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3434)
+07:41:21 - INFO - ✨ 所有任务都处理完啦！
+07:41:36 - INFO - 📦 收到 1 个传送请求，准备出发！
+07:41:36 - INFO - --------------------------------------------------
+07:41:36 - INFO - 🔗 正在解析传送门: https://kemono.cr/patreon/user/111877200
+07:41:37 - WARNING - 帖子 Pixiv帐号被封，已开新帐号测试中 中未找到图片文件
+07:41:38 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3435)
+07:41:38 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3436)
+07:41:38 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3437)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3438)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3439)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3440)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3441)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3442)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3442)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3443)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3444)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3444)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3445)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3446)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3446)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3447)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3448)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3449)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3450)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3451)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3451)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3452)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3453)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3454)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3455)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3456)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3457)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3458)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3459)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3460)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3461)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3461)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3462)
+07:41:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3463)
+07:41:40 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3464)
+07:41:40 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3465)
+07:41:40 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3465)
+07:41:40 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3466)
+07:41:40 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3467)
+07:41:40 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3468)
+07:41:40 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3468)
+07:41:40 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3469)
+07:41:40 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3470)
+07:41:40 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3471)
+07:41:40 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3471)
+07:41:40 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3472)
+07:41:40 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3473)
+07:41:40 - INFO - ✨ 所有任务都处理完啦！
+07:48:13 - INFO - 📦 收到 1 个传送请求，准备出发！
+07:48:13 - INFO - --------------------------------------------------
+07:48:13 - INFO - 🔗 正在解析传送门: https://kemono.cr/fanbox/user/102062451
+07:48:14 - WARNING - 帖子 双重呼吸-番外 Ⅰ 中未找到图片文件
+07:48:14 - WARNING - 帖子 双重呼吸-DoubleBreath[已被下架] 中未找到图片文件
+07:48:14 - WARNING - 帖子 解密答案 中未找到图片文件
+07:48:14 - WARNING - 帖子 新的Pixiv账号 中未找到图片文件
+07:48:14 - WARNING - 帖子 *IMPORTANT*关于新的赞助方案以及赞助方案变更 中未找到图片文件
+07:48:15 - WARNING - 帖子 新的赞助平台 中未找到图片文件
+07:48:15 - WARNING - 帖子 致粉絲的重要通知 中未找到图片文件
+07:48:15 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3474)
+07:48:18 - INFO - 成功生成: D:\Test\downloads\skiny\新的订阅平台.pdf
+07:48:18 - INFO - 已删除原文件夹: D:\Test\downloads\skiny\新的订阅平台
+07:48:18 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3475)
+07:48:20 - INFO - 成功生成: D:\Test\downloads\skiny\违规在哪里？(我的P站主号被封了).pdf
+07:48:20 - INFO - 已删除原文件夹: D:\Test\downloads\skiny\违规在哪里？(我的P站主号被封了)
+07:48:20 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3476)
+07:48:22 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3477)
+07:48:23 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3478)
+07:48:26 - INFO - 成功生成: D:\Test\downloads\skiny\差分图哦.pdf
+07:48:26 - INFO - 已删除原文件夹: D:\Test\downloads\skiny\差分图哦
+07:48:26 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3479)
+07:48:28 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3480)
+07:48:30 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3481)
+07:48:32 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3482)
+07:48:37 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3483)
+07:48:42 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3484)
+07:48:43 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3485)
+07:48:46 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3486)
+07:48:46 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3487)
+07:48:49 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3488)
+07:48:49 - INFO - 成功生成: D:\Test\downloads\skiny\人工授精【特典】.pdf
+07:48:49 - INFO - 已删除原文件夹: D:\Test\downloads\skiny\人工授精【特典】
+07:48:49 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3489)
+07:48:56 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3490)
+07:49:01 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3491)
+07:49:05 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3492)
+07:49:05 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3492)
+07:49:06 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3493)
+07:49:09 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3494)
+07:49:10 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3495)
+07:49:10 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3496)
+07:49:12 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3497)
+07:49:12 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3498)
+07:49:14 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3499)
+07:49:14 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3500)
+07:49:14 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3501)
+07:49:15 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3502)
+07:49:20 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3503)
+07:49:20 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3504)
+07:49:21 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3505)
+07:49:22 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3506)
+07:49:32 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3507)
+07:49:33 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3508)
+07:49:33 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3509)
+07:49:33 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3510)
+07:49:33 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3511)
+07:49:36 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3512)
+07:49:43 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3513)
+07:49:45 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3514)
+07:49:46 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3515)
+07:49:49 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3516)
+07:49:49 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3517)
+07:51:47 - INFO - 成功生成: D:\Test\downloads\skiny\新角色CG预览图.pdf
+07:51:47 - INFO - 已删除原文件夹: D:\Test\downloads\skiny\新角色CG预览图
+07:51:47 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3518)
+07:51:52 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3519)
+07:52:45 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3520)
+07:53:05 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3521)
+07:53:16 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3522)
+07:53:25 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3523)
+07:53:35 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3524)
+07:53:35 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3525)
+07:53:35 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3526)
+07:53:38 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3527)
+07:53:41 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3528)
+07:54:07 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3529)
+07:54:27 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3530)
+07:54:31 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3531)
+07:54:37 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3532)
+07:54:37 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3533)
+07:54:45 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3534)
+07:54:48 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3535)
+07:55:44 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3536)
+07:56:29 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3537)
+08:02:14 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3538)
+08:02:14 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3539)
+08:02:15 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3540)
+08:02:15 - INFO - ✨ 所有任务都处理完啦！
+08:16:28 - INFO - 🔍 正在解析神秘链接: https://kemono.cr/fanbox/user/73111346
+08:16:29 - INFO - 💖 成功捕获一只作者: SuperHeather (作品数: 16)
+08:16:29 - INFO - 📝 关注小本本已更新: follows.csv
+08:16:42 - INFO - 📋 发现 7 位特别关注，正在查看他们有没有新作品...
+08:16:42 - INFO - [1/7] 正在拜访: https://www.pixiv.net/users/14352536
+08:16:44 - INFO - [2/7] 正在拜访: https://www.pixiv.net/users/43207399
+08:16:46 - INFO - [3/7] 正在拜访: https://kemono.cr/fanbox/user/5848128
+08:16:53 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 1023280)
+08:17:23 - INFO - [4/7] 正在拜访: https://www.pixiv.net/users/97592734
+08:17:31 - INFO - [5/7] 正在拜访: https://kemono.cr/patreon/user/94927303
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84451640)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84451602)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84451675)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84451789)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84451421)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84451827)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84451288)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84451390)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84451107)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84450896)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84450833)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84449369)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84449167)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84450676)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84448732)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84448879)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84449287)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84450595)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84448853)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84447960)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84449399)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84450719)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84449265)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84441598)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84448949)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84448798)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84441662)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84448066)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84448998)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84449855)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84441828)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84440757)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84449199)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84440862)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84447856)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84449037)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84448012)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84451236)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84441769)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84441881)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84440035)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84439701)
+08:17:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Post 84439839)
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - ERROR - 获取帖子详情失败 - <urlopen error [SSL: UNEXPECTED_EOF_WHILE_READING] EOF occurred in violation of protocol (_ssl.c:1032)>
+08:18:08 - INFO - [6/7] 正在拜访: https://kemono.cr/patreon/user/111877200
+08:23:24 - INFO - 📋 发现 7 位特别关注，正在查看他们有没有新作品...
+08:23:24 - INFO - [1/7] 正在拜访: https://www.pixiv.net/users/14352536
+08:23:26 - INFO - [2/7] 正在拜访: https://www.pixiv.net/users/43207399
+08:23:28 - INFO - [3/7] 正在拜访: https://kemono.cr/fanbox/user/5848128
+08:23:31 - INFO - [4/7] 正在拜访: https://www.pixiv.net/users/97592734
+08:23:37 - INFO - [5/7] 正在拜访: https://kemono.cr/patreon/user/94927303
+08:23:38 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Profile)
+08:28:30 - INFO - 📋 发现 7 位特别关注，正在查看他们有没有新作品...
+08:28:32 - INFO - ✨ [1/7] 完成: https://www.pixiv.net/users/43207399
+08:28:32 - INFO - ✨ [2/7] 完成: https://www.pixiv.net/users/14352536
+08:28:33 - INFO - ✨ [3/7] 完成: https://kemono.cr/fanbox/user/5848128
+08:28:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Offset 50)
+08:28:33 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Profile)
+08:28:39 - INFO - ✨ [4/7] 完成: https://www.pixiv.net/users/97592734
+08:28:40 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Profile)
+08:29:14 - ERROR - 获取帖子详情失败 - HTTP 503
+08:33:41 - INFO - ✨ [5/7] 完成: https://kemono.cr/fanbox/user/73111346
+08:34:37 - INFO - 📋 发现 7 位特别关注，正在查看他们有没有新作品...
+08:34:38 - INFO - ✨ [1/7] 完成: https://www.pixiv.net/users/43207399
+08:34:39 - INFO - ✨ [2/7] 完成: https://www.pixiv.net/users/14352536
+08:34:40 - INFO - ✨ [3/7] 完成: https://kemono.cr/fanbox/user/5848128
+08:34:40 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Offset 100)
+08:34:40 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Profile)
+08:34:46 - INFO - ✨ [4/7] 完成: https://www.pixiv.net/users/97592734
+08:34:47 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Profile)
+08:38:19 - INFO - ✨ [5/7] 完成: https://kemono.cr/fanbox/user/73111346
+08:43:25 - INFO - 📋 发现 7 位特别关注，正在查看他们有没有新作品...
+08:43:26 - INFO - ✨ [1/7] 完成: https://www.pixiv.net/users/43207399
+08:43:27 - INFO - ✨ [2/7] 完成: https://www.pixiv.net/users/14352536
+08:43:27 - INFO - ✨ [3/7] 完成: https://kemono.cr/fanbox/user/5848128
+08:43:27 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Profile)
+08:43:27 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Profile)
+08:43:34 - INFO - ✨ [4/7] 完成: https://www.pixiv.net/users/97592734
+08:43:34 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Profile)
+08:43:57 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Profile)
+08:43:57 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Offset 0)
+08:44:04 - INFO - ✨ [5/7] 完成: https://kemono.cr/fanbox/user/73111346
+08:45:28 - INFO - 📦 收到 1 个传送请求，准备出发！
+08:45:28 - INFO - --------------------------------------------------
+08:45:28 - INFO - 🔗 正在解析传送门: https://kemono.cr/fanbox/user/73111346
+08:45:29 - WARNING - 帖子 Origin CHS 中文版 中未找到图片文件
+08:45:33 - WARNING - 帖子 Origin CHS 中文版 中未找到图片文件
+08:45:38 - WARNING - 帖子 Origin CHS 中文版 中未找到图片文件
+08:45:38 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3541)
+08:45:38 - INFO - 成功生成: D:\Test\downloads\SuperHeather\重要公告 Important Notice.pdf
+08:45:38 - INFO - 已删除原文件夹: D:\Test\downloads\SuperHeather\重要公告 Important Notice
+08:45:38 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3542)
+08:45:39 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3543)
+08:45:44 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3544)
+08:45:44 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3545)
+08:45:45 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3546)
+08:45:48 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3547)
+08:45:49 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3548)
+08:45:50 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3549)
+08:45:50 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3549)
+08:45:50 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3550)
+08:45:51 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3551)
+08:45:52 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3552)
+08:45:52 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3553)
+08:45:53 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3554)
+08:45:53 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3555)
+08:45:58 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3556)
+08:45:58 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3557)
+08:45:59 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3558)
+08:45:59 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3559)
+08:45:59 - INFO - 🧹 正在清理下载目录: D:\Test\downloads
+08:45:59 - INFO - ✨ 下载目录已清空！
+08:45:59 - INFO - ✨ 所有任务都处理完啦！
+08:47:09 - INFO - 📦 收到 1 个传送请求，准备出发！
+08:47:09 - INFO - --------------------------------------------------
+08:47:09 - INFO - 🔗 正在解析传送门: https://kemono.cr/fanbox/user/73111346
+08:47:10 - WARNING - 帖子 Origin CHS 中文版 中未找到图片文件
+08:47:12 - WARNING - 帖子 Origin CHS 中文版 中未找到图片文件
+08:47:16 - WARNING - 帖子 Origin CHS 中文版 中未找到图片文件
+08:47:16 - INFO - 🧹 正在清理下载目录: D:\Test\downloads
+08:47:16 - INFO - ✨ 下载目录已清空！
+08:47:16 - INFO - ✨ 所有任务都处理完啦！
+08:47:47 - INFO - 📦 收到 1 个传送请求，准备出发！
+08:47:47 - INFO - --------------------------------------------------
+08:47:47 - INFO - 🔗 正在解析传送门: https://kemono.cr/patreon/user/97312415
+08:47:48 - WARNING - 帖子 给Ackerman粉丝的一封信 中未找到图片文件
+08:47:49 - WARNING - 帖子 预览发布 ＆ 译者征求公告 中未找到图片文件
+08:47:49 - WARNING - 帖子 译者征求公告 中未找到图片文件
+08:47:49 - WARNING - 帖子 淘宝代付替代方案：引力圈上线 中未找到图片文件
+08:47:49 - WARNING - 帖子 Fanbox停权公告与后续处理措施/Fanbox Suspension Announcement 中未找到图片文件
+08:47:51 - WARNING - 帖子 给Ackerman粉丝的一封信 中未找到图片文件
+08:47:51 - WARNING - 帖子 译者征求公告 中未找到图片文件
+08:47:51 - WARNING - 帖子 淘宝代付替代方案：引力圈上线 中未找到图片文件
+08:47:51 - WARNING - 帖子 预览发布 ＆ 译者征求公告 中未找到图片文件
+08:47:51 - WARNING - 帖子 Fanbox停权公告与后续处理措施/Fanbox Suspension Announcement 中未找到图片文件
+08:47:55 - INFO - 📝 记下来啦！清单已更新: library_manifest.csv (ID: 3560)
+08:47:55 - WARNING - 帖子 给Ackerman粉丝的一封信 中未找到图片文件
+08:47:55 - WARNING - 帖子 译者征求公告 中未找到图片文件
+08:47:55 - WARNING - 帖子 淘宝代付替代方案：引力圈上线 中未找到图片文件
+08:47:55 - WARNING - 帖子 预览发布 ＆ 译者征求公告 中未找到图片文件
+08:47:56 - WARNING - 帖子 Fanbox停权公告与后续处理措施/Fanbox Suspension Announcement 中未找到图片文件
+08:47:56 - INFO - 🧹 正在清理下载目录: D:\Test\downloads
+08:47:56 - INFO - ✨ 下载目录已清空！
+08:47:56 - INFO - ✨ 所有任务都处理完啦！
+08:48:16 - INFO - 📋 发现 7 位特别关注，正在查看他们有没有新作品...
+08:48:18 - INFO - ✨ [1/7] 完成: https://www.pixiv.net/users/43207399
+08:48:19 - INFO - ✨ [2/7] 完成: https://www.pixiv.net/users/14352536
+08:48:19 - INFO - ✨ [3/7] 完成: https://kemono.cr/fanbox/user/5848128
+08:48:19 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Profile)
+08:48:19 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Profile)
+08:48:25 - INFO - ✨ [4/7] 完成: https://www.pixiv.net/users/97592734
+08:48:26 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Profile)
+08:48:49 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Profile)
+08:48:49 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Profile)
+08:48:56 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Profile)
+08:53:13 - INFO - ✨ [5/7] 完成: https://kemono.cr/fanbox/user/73111346
+08:55:54 - INFO - 📋 发现 7 位特别关注，正在查看他们有没有新作品...
+08:55:54 - INFO - [1/7] 正在拜访: https://www.pixiv.net/users/14352536
+08:56:01 - INFO - [2/7] 正在拜访: https://www.pixiv.net/users/43207399
+08:56:02 - INFO - [3/7] 正在拜访: https://kemono.cr/fanbox/user/5848128
+08:56:05 - INFO - [4/7] 正在拜访: https://www.pixiv.net/users/97592734
+08:56:12 - INFO - [5/7] 正在拜访: https://kemono.cr/patreon/user/94927303
+08:56:12 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Offset 0)
+08:56:42 - WARNING - HTTP 429 Too Many Requests. Waiting 30s before retry... (Offset 0)

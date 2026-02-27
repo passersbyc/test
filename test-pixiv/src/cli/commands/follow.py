@@ -6,8 +6,7 @@ from typing import Optional, Tuple
 from src.cli.core import BaseCommand
 from src.cli.downplugin.pixiv import PixivDownloader
 from src.cli.downplugin.kemono import Kemono
-from toolboxs import get_project_root
-
+from toolboxs import get_project_root, logger
 
 class FollowCommand(BaseCommand):
     def __init__(self) -> None:
@@ -43,6 +42,9 @@ class FollowCommand(BaseCommand):
         """
         根据 URL 获取作者信息 (作者名, 作品数量)。
         """
+        if not url:
+            return None
+        url = url.strip()
         if "pixiv.net" in url:
             downloader = PixivDownloader()
             return downloader.get_author_info(url)
@@ -56,6 +58,10 @@ class FollowCommand(BaseCommand):
         更新关注列表 CSV 文件。
         如果 URL 已存在，则更新信息；否则追加新记录。
         """
+        if not url:
+            logger.warning("❓ 链接为空，跳过更新关注列表。")
+            return
+        url = url.strip()
         root = get_project_root()
         csv_path = root / "follows.csv"
         
@@ -78,7 +84,7 @@ class FollowCommand(BaseCommand):
                             updated = True
                         rows.append(row)
             except Exception as e:
-                print(f"读取关注列表失败: {e}")
+                logger.error(f"读取关注列表失败: {e}")
                 return
 
         # 如果未找到现有记录，则追加
@@ -96,28 +102,22 @@ class FollowCommand(BaseCommand):
                 writer = csv.DictWriter(f, fieldnames=headers, extrasaction="ignore")
                 writer.writeheader()
                 writer.writerows(rows)
-            print(f"已更新关注列表: {csv_path}")
+            logger.info(f"📝 关注小本本已更新: {csv_path.name}")
         except Exception as e:
-            print(f"写入关注列表失败: {e}")
+            logger.error(f"😫 无法写入关注列表: {e}")
 
     def execute(self, args: argparse.Namespace) -> int:
         """
         执行关注用户逻辑。
-        
-        Args:
-            args: 包含解析后的参数。
-            
-        Returns:
-            0 表示执行成功。
         """
         # 如果未提供 URL，则更新所有已关注作者
         if not args.url:
-            print("正在更新所有已关注作者的信息...")
+            logger.info("🔄 正在拜访所有已关注的作者...")
             root = get_project_root()
             csv_path = root / "follows.csv"
             
             if not csv_path.exists():
-                print("未找到关注列表，请先关注作者。")
+                logger.info("📭 关注列表是空的呢，快去关注喜欢的作者吧！")
                 return 0
                 
             urls = []
@@ -127,39 +127,43 @@ class FollowCommand(BaseCommand):
                     for row in reader:
                         u = row.get("URL")
                         if u:
-                            urls.append(u)
+                            urls.append(u.strip())
             except Exception as e:
-                print(f"读取关注列表失败: {e}")
+                logger.error(f"😵 读取关注列表失败: {e}")
                 return 1
             
+            urls = [u for u in dict.fromkeys(urls) if u]
             if not urls:
-                print("关注列表为空。")
+                logger.info("📭 关注列表是空的呢。")
                 return 0
                 
-            print(f"找到 {len(urls)} 位关注作者，开始更新...")
+            logger.info(f"📋 发现 {len(urls)} 位特别关注，开始逐一确认...")
             for idx, url in enumerate(urls, 1):
-                print(f"[{idx}/{len(urls)}] 正在更新: {url}")
+                logger.info(f"[{idx}/{len(urls)}] 正在连线: {url}")
                 info = self.get_author_info(url)
                 if info:
                     name, count = info
-                    print(f"  -> {name} (作品数量: {count})")
+                    logger.info(f"  ✨ 确认完毕: {name} (作品数: {count})")
                     self.update_follow_list(name, url, count)
                 else:
-                    print(f"  -> 无法获取信息: {url}")
+                    logger.warning(f"  🌫️ 无法连接到对方: {url}")
             
-            print("所有作者更新完毕！")
+            logger.info("🎉 所有关注信息都更新好啦！")
             return 0
 
         # 如果提供了 URL，则处理单个
-        url = args.url
-        print(f"正在分析链接: {url}")
+        url = args.url.strip() if args.url else ""
+        if not url:
+            logger.warning("❓ 链接不能为空哦。")
+            return 1
+        logger.info(f"🔍 正在解析神秘链接: {url}")
         
         info = self.get_author_info(url)
         if info:
             name, count = info
-            print(f"成功获取作者信息: {name} (作品数量: {count})")
+            logger.info(f"💖 成功捕获一只作者: {name} (作品数: {count})")
             self.update_follow_list(name, url, count)
         else:
-            print("无法获取作者信息，请确认链接是否正确且为作者主页。")
+            logger.warning("❓ 好像没找到这位作者呢，请确认链接是否正确哦。")
         
         return 0
