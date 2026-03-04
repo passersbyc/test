@@ -19,49 +19,26 @@ import mimetypes
 import logging
 from types import SimpleNamespace
 import csv
-sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
+from types import SimpleNamespace
+
+# 确保项目根目录在 sys.path 中，以便导入 src 模块
+project_root = Path(__file__).resolve().parents[3]
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
+from src.cli.downplugin.base import BaseDownloader, setup_logging
 from toolboxs import (
     get_project_root,
     clean_filename,
     convert_images_to_book,
     description_to_text,
-    build_import_target,
-    determine_storage_path,
-    determine_file_type,
-    get_library_path,
-    create_metadata,
-    supplement_csv,
-    generate_file_md5,
+    logger # 直接复用 toolboxs 的 logger
 )
 
-class TqdmLoggingHandler(logging.Handler):
-    def __init__(self, level=logging.NOTSET):
-        super().__init__(level)
+# setup_logging("application.log") # 移除重复配置
+# logger = logging.getLogger(__name__)
 
-    def emit(self, record):
-        try:
-            msg = self.format(record)
-            tqdm.write(msg)
-            self.flush()
-        except Exception:
-            self.handleError(record)
-
-def setup_logging():
-    log_file = get_project_root() / "kemono.log"
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s',
-        datefmt='%H:%M:%S',
-        handlers=[
-            logging.FileHandler(str(log_file), encoding='utf-8'),
-            TqdmLoggingHandler()
-        ]
-    )
-
-setup_logging()
-logger = logging.getLogger(__name__)
-
-class PixivDownloader:
+class PixivDownloader(BaseDownloader):
     """
     Pixiv 下载器类。
     利用 config.json 中的 cookie 模拟网页版请求，下载插画和漫画。
@@ -71,6 +48,7 @@ class PixivDownloader:
         """
         初始化下载器，加载配置和 Cookie。
         """
+        super().__init__()
         self.session = requests.Session()
         
         # 配置重试策略
@@ -101,29 +79,9 @@ class PixivDownloader:
         self.image_rate_limit_rps = 6.0
         self._image_rate_lock = threading.Lock()
         self._image_rate_next_ts = 0.0
-        self.existing_sources = set()
         self._load_existing_sources()
         self._load_config()
         self.download_file_path = "downloads"
-
-    def _load_existing_sources(self):
-        """
-        加载现有的下载记录，避免重复下载。
-        """
-        try:
-            root = get_project_root()
-            csv_path = root / "library_manifest.csv"
-            if csv_path.exists():
-                with open(csv_path, "r", encoding="utf-8-sig", newline="") as f:
-                    reader = csv.DictReader(f)
-                    for row in reader:
-                        src = row.get("来源") or row.get("source")
-                        if src:
-                            self.existing_sources.add(src.strip())
-            print(f"📚 已加载 {len(self.existing_sources)} 条现有记录")
-        except Exception as e:
-            print(f"⚠️ 加载现有记录失败: {e}")
-            logger.error(f"加载现有记录失败: {e}")
 
     def _load_config(self):
         """
@@ -190,14 +148,6 @@ class PixivDownloader:
             # 设置默认 URL 以防万一
             self.base_url = "https://www.pixiv.net"
             self.ajax_url = "https://www.pixiv.net/ajax/illust"
-
-    def _set_last_error(self, message: str) -> None:
-        self._last_error = message or ""
-        if message:
-            logger.error(message)
-
-    def _clear_last_error(self) -> None:
-        self._last_error = ""
 
     def _rate_limit(self) -> None:
         if self.rate_limit_rps <= 0:
@@ -924,46 +874,7 @@ class PixivDownloader:
         except Exception:
             self._set_last_error(f"下载失败: {url}")
             return False
-    def import_download(self, file_path: Path, work_url: Optional[str] = None, info: Optional[Dict[str, Any]] = None) -> tuple[Optional[Path], str]:
-        if not file_path.exists():
-            return None, "下载文件不存在"
-        if not work_url:
-            return None, "来源 URL 为空"
-        if info is None:
-            info = self.get_info(work_url)
-        if not info:
-            return None, self._last_error or "获取作品信息失败"
-        title = clean_filename(info.get("title") or "")
-        author = info.get("author") or ""
-        series = info.get("series") or ""
-        suffix = file_path.suffix
-        expected_name = f"{title}{suffix}" if title else file_path.name
-        if file_path.name != expected_name:
-            new_path = file_path.with_name(expected_name)
-            file_path.rename(new_path)
-            file_path = new_path
-        file_type = determine_file_type(str(file_path))
-        if file_type == "unknown":
-            ext = file_path.suffix.lower()
-            ext_display = ext[1:] if ext else ""
-            config_path = get_project_root() / "config.json"
-            return None, f"无法识别文件类型(ext={ext_display or '无'}; config={config_path})"
-        base = get_library_path() / file_type
-        determine_storage_path(base, author, series)
-        target_path = build_import_target(file_path, author, series)
-        shutil.move(str(file_path), str(target_path))
-        file_md5 = generate_file_md5(target_path)
-        tags = info.get("tags") or []
-        tags_str = ",".join(tags) if isinstance(tags, list) else str(tags)
-        args = SimpleNamespace(
-            author=author,
-            series=series,
-            tags=tags_str,
-            source=work_url,
-        )
-        metadata = create_metadata(args, target_path, target_path, file_md5)
-        supplement_csv(metadata)
-        return target_path, "ok"
+            
     def download_and_import(self, work_url: str) -> tuple[Optional[Path], str]:
         self._clear_last_error()
         if self._is_source_in_manifest(work_url):
@@ -973,47 +884,32 @@ class PixivDownloader:
         if not dl:
             return None, self._last_error or "下载失败"
         
-        res, reason = self.import_download(dl, work_url, info)
+        # 转换元数据
+        metadata = {}
+        if info:
+            metadata["title"] = info.get("title")
+            metadata["author"] = info.get("author")
+            metadata["series"] = info.get("series")
+            metadata["tags"] = info.get("tags") or []
+        
+        metadata["source"] = work_url
+
+        res, reason = self.import_download(dl, work_url, metadata)
         if res:
             self.existing_sources.add(work_url.strip())
             return res, "ok"
         return None, reason
 
-    def _get_manifest_path(self) -> Path:
-        root = get_project_root()
-        manifest_name = "library_manifest.csv"
-        config_path = root / "config.json"
-        if config_path.exists():
-            try:
-                config = json.loads(config_path.read_text(encoding="utf-8"))
-                manifest_name = config.get("project_settings", {}).get("csv_path", manifest_name)
-            except Exception:
-                pass
-        path = Path(manifest_name)
-        return path if path.is_absolute() else root / path
-
-    def _is_source_in_manifest(self, work_url: str) -> bool:
-        if not work_url:
-            return False
-        work_url = work_url.strip()
-        csv_path = self._get_manifest_path()
-        if not csv_path.exists():
-            return False
-        try:
-            with open(csv_path, "r", encoding="utf-8-sig", newline="") as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    src = row.get("来源") or row.get("source")
-                    if src and src.strip() == work_url:
-                        return True
-        except Exception:
-            return False
-        return False
-
     def get_user_works(self, user_id: str) -> List[str]:
         """
         获取用户所有作品（插画、漫画、小说）的URL列表。
         """
+        # 确保 user_id 只是数字 ID，而不是完整 URL
+        if "users/" in user_id:
+            m = re.search(r"/users/(\d+)", user_id)
+            if m:
+                user_id = m.group(1)
+        
         url = f"{self.base_url}/ajax/user/{user_id}/profile/all"
         try:
             data = self._get_json_with_backoff(url)
@@ -1102,49 +998,65 @@ class PixivDownloader:
         works = self.get_user_works(uid)
         return name, len(works)
 
-    def process_url(self, url: str) -> Dict[str, int]:
+    def process_url(self, url: str | List[str]) -> Dict[str, int]:
         """
         处理输入URL，自动识别作品、用户或系列，并下载导入。
+        支持单个 URL 字符串或 URL 列表。
+        
+        如果输入是列表，则默认所有条目均为作品链接，跳过解析步骤。
+        
         返回统计信息: {"success": 0, "failed": 0, "skipped": 0}
         """
         stats = {"success": 0, "failed": 0, "skipped": 0}
         works = []
         
-        print(f"✨ 正在解析魔法链接: {url}")
-        
-        # User Profile
-        if "/users/" in url:
-            m = re.search(r"/users/(\d+)", url)
-            if m:
-                uid = m.group(1)
-                author_name = self.get_user_name(uid) or uid
-                print(f"🎨 发现了一位画师大大 (作者: {author_name})，正在翻阅作品集...")
-                works = self.get_user_works(uid)
-        
-        # Novel Series
-        elif "/novel/series/" in url:
-            m = re.search(r"/novel/series/(\d+)", url)
-            if m:
-                sid = m.group(1)
-                print(f"📚 发现了一套精彩的小说 (ID: {sid})，正在整理章节...")
-                works = [url]
-                
-        # Illust/Manga Series (user/x/series/y)
-        elif "/series/" in url:
-            m = re.search(r"/series/(\d+)", url)
-            if m:
-                sid = m.group(1)
-                print(f"🎨 发现了一套精美的插画 (ID: {sid})，正在整理画集...")
-                works = self.get_series_works(sid, is_novel=False)
-                
-        # Single Work
-        elif "/artworks/" in url or "/novel/show.php" in url:
-            works = [url]
-            
+        if isinstance(url, list):
+            # 列表模式：直接视为作品链接
+            works = [u.strip() for u in url if u.strip()]
+            # print(f"✨ 收到 {len(works)} 个作品链接，准备批量搬运...") # 移除重复日志
         else:
-            print(f"❓ 这是什么奇怪的链接呀: {url}")
-            return stats
+            # 单链接模式：执行解析逻辑
+            u = url.strip()
+            if not u:
+                return stats
+                
+            print(f"✨ 正在解析魔法链接: {u}")
+            
+            # User Profile
+            if "/users/" in u:
+                m = re.search(r"/users/(\d+)", u)
+                if m:
+                    uid = m.group(1)
+                    author_name = self.get_user_name(uid) or uid
+                    print(f"🎨 发现了一位画师大大 (作者: {author_name})，正在翻阅作品集...")
+                    works.extend(self.get_user_works(uid))
+            
+            # Novel Series
+            elif "/novel/series/" in u:
+                m = re.search(r"/novel/series/(\d+)", u)
+                if m:
+                    sid = m.group(1)
+                    print(f"📚 发现了一套精彩的小说 (ID: {sid})，正在整理章节...")
+                    works.extend(self.get_series_works(sid, is_novel=True))
+                    
+            # Illust/Manga Series (user/x/series/y)
+            elif "/series/" in u:
+                m = re.search(r"/series/(\d+)", u)
+                if m:
+                    sid = m.group(1)
+                    print(f"🎨 发现了一套精美的插画 (ID: {sid})，正在整理画集...")
+                    works.extend(self.get_series_works(sid, is_novel=False))
+                    
+            # Single Work
+            elif "/artworks/" in u or "/novel/show.php" in u:
+                works.append(u)
+                
+            else:
+                print(f"❓ 这是什么奇怪的链接呀: {u}")
+                return stats
 
+        # 去重
+        works = list(dict.fromkeys(works))
         total = len(works)
         if total == 0:
             print("🍃 呜呜，什么都没有找到呢...")
@@ -1159,53 +1071,45 @@ class PixivDownloader:
         
         lock = threading.Lock()
         
-        with tqdm(total=total, unit="个", desc="📦 搬运进度", ncols=80, colour='pink') as pbar:
+        # 记录需要重试的 URL
+        retry_urls = []
+        
+        with tqdm(total=total, unit="个", desc="📦 搬运进度", ncols=80, colour='MAGENTA') as pbar:
             with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+                # 提交所有任务
                 futures = {
-                    executor.submit(self._download_worker, u, stats, lock, pbar, True): u
+                    executor.submit(self._download_worker, u, stats, lock, pbar): u
                     for u in works
                 }
                 
-                # 等待所有任务完成，并收集需要重试的任务
-                retry_urls = []
+                # 处理完成的任务
                 for future in concurrent.futures.as_completed(futures):
                     try:
                         work_url, ok, reason = future.result()
+                        # 如果失败且包含 429 错误，加入重试列表
                         if not ok and reason and "429" in str(reason):
                              retry_urls.append(work_url)
-                    except Exception:
-                        pass
-                
-                # 如果有 429 错误，进行重试
-                if retry_urls and self.retry_429:
-                    time.sleep(self.retry_429_delay_seconds)
-                    pbar.write(f"♻️ 休息一下，准备重试 {len(retry_urls)} 个任务...")
-                    
-                    with tqdm(total=len(retry_urls), unit="个", desc="♻️ 限流重试", ncols=80, colour='pink') as rpbar:
-                         with concurrent.futures.ThreadPoolExecutor(max_workers=self.retry_429_max_workers) as rex:
-                            rfutures = [
-                                rex.submit(self._download_worker, u, stats, lock, rpbar, False)
-                                for u in retry_urls
-                            ]
-                            concurrent.futures.wait(rfutures)
-                            # 重试结果不再次计入失败统计，仅更新成功
-                            for f in rfutures:
-                                try:
-                                    _, ok, _ = f.result()
-                                    if ok:
-                                        with lock:
-                                            # 如果重试成功，把之前失败的计数减回去（可选，视统计逻辑而定）
-                                            # 这里简单起见，只增加成功计数，不减少失败计数，
-                                            # 或者我们可以不把第一次失败计入最终失败，这里逻辑比较复杂
-                                            # 简单做法：重试成功就当做成功
-                                            pass
-                                except Exception:
-                                    pass
+                    except Exception as e:
+                        logger.error(f"任务执行异常: {e}")
+
+        # 如果有 429 错误，进行重试
+        if retry_urls and self.retry_429:
+            print(f"\n♻️ 休息 {self.retry_429_delay_seconds} 秒，准备重试 {len(retry_urls)} 个任务...")
+            time.sleep(self.retry_429_delay_seconds)
+            
+            with tqdm(total=len(retry_urls), unit="个", desc="♻️ 限流重试", ncols=80, colour='MAGENTA') as rpbar:
+                 with concurrent.futures.ThreadPoolExecutor(max_workers=self.retry_429_max_workers) as rex:
+                    rfutures = {
+                        rex.submit(self._download_worker, u, stats, lock, rpbar): u
+                        for u in retry_urls
+                    }
+                    concurrent.futures.wait(rfutures)
 
         print(f"\n🎉 搬运大功告成啦！ 成功: {stats['success']} | 跳过: {stats['skipped']} | 失败: {stats['failed']}")
         return stats
+
         
-    def _download_worker(self, work_url: str, stats: Dict[str, int], lock: threading.Lock, pbar: tqdm, count_stats: bool) -> tuple[str, bool, str]:
+    def _download_worker(self, work_url: str, stats: Dict[str, int], lock: threading.Lock, pbar: tqdm) -> tuple[str, bool, str]:
         """
         线程工作函数，包含额外的重试逻辑
         """
@@ -1223,8 +1127,7 @@ class PixivDownloader:
                 if res:
                     with lock:
                         pbar.write(f"💖 搬运成功: {res.name}")
-                        if count_stats:
-                            stats["success"] += 1
+                        stats["success"] += 1
                     pbar.update(1)
                     return work_url, True, "ok"
                 else:
@@ -1232,8 +1135,7 @@ class PixivDownloader:
                         with lock:
                             # 静默跳过，只计数不输出
                             # pbar.write(f"⏩ 已跳过: {work_url} (已经在库里啦)")
-                            if count_stats:
-                                stats["skipped"] += 1
+                            stats["skipped"] += 1
                         pbar.update(1)
                         return work_url, False, reason
                     
@@ -1248,8 +1150,7 @@ class PixivDownloader:
                     
                     with lock:
                         pbar.write(f"💔 搬运失败: {work_url} | 原因: {reason}")
-                        if count_stats:
-                            stats["failed"] += 1
+                        stats["failed"] += 1
                     pbar.update(1)
                     return work_url, False, reason
 
@@ -1262,8 +1163,7 @@ class PixivDownloader:
                 
                 with lock:
                     pbar.write(f"🌐 网络开了小差 {work_url}: {e}")
-                    if count_stats:
-                        stats["failed"] += 1
+                    stats["failed"] += 1
                     pbar.update(1)
                 return work_url, False, str(e)
                 
@@ -1271,8 +1171,7 @@ class PixivDownloader:
                 last_reason = str(e)
                 with lock:
                     pbar.write(f"💥 哎呀出错惹 {work_url}: {e}")
-                    if count_stats:
-                        stats["failed"] += 1
+                    stats["failed"] += 1
                     pbar.update(1)
                 return work_url, False, str(e)
         
@@ -1289,7 +1188,7 @@ if __name__ == "__main__":
     
     # 2. 下载用户所有作品 (示例用户)
     u_user = "https://www.pixiv.net/users/66902618"
-    d.process_url(u_user)
+    print(d.get_user_works(u_user))
     
     # 3. 下载系列作品
     # u_series = "https://www.pixiv.net/novel/series/123456" 

@@ -31,6 +31,7 @@ def setup_logger(name: str = "toolboxs") -> logging.Logger:
         return logger
         
     logger.setLevel(logging.INFO)
+    logger.propagate = False  # 防止日志传播到根记录器，避免重复
     
     # 获取日志文件路径
     log_path = get_project_root() / "application.log"
